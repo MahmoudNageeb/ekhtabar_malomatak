@@ -62,9 +62,6 @@ export default function Footer() {
         <div className="mt-10 pt-6 border-t border-white/20 text-center text-sm">
           <div className="text-blue-100/70">
             © {new Date().getFullYear()} <span className="font-bold gold-text">اختبر معلوماتك</span> - جميع الحقوق محفوظة
-          </div>
-          <div className="text-xs text-blue-100/50 mt-1">صُنع بـ ❤️ لطلاب مصر</div>
-        </div>
       </div>
     </footer>
   );
