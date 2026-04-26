@@ -6,6 +6,7 @@ import Link from 'next/link';
 export default function Footer() {
   return (
     <footer className="mt-16 relative overflow-hidden">
+
       {/* الخلفية */}
       <div className="absolute inset-0 bg-gradient-to-bl from-royal-900 via-royal-800 to-royal-700"></div>
       <div className="absolute inset-0 opacity-10 dot-pattern"></div>
@@ -15,6 +16,7 @@ export default function Footer() {
       <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-royal-400/20 rounded-full blur-3xl"></div>
 
       <div className="relative max-w-7xl mx-auto px-4 py-12 text-white">
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
 
           {/* اللوجو */}
@@ -35,13 +37,15 @@ export default function Footer() {
           {/* المشرف */}
           <div className="text-center">
             <div className="inline-block bg-white/10 backdrop-blur-sm rounded-2xl px-8 py-5 border border-white/20">
-              <div className="text-xs text-blue-100/80 mb-1">✦ تحت إشراف ✦</div>
+
+              <div className="text-xs text-blue-100/80 mb-1">
+                ✦ تحت إشراف ✦
+              </div>
+
               <div className="text-2xl font-extrabold gold-text">
                 أ / أسماء محمد نجيب
               </div>
-              <div className="text-xs text-blue-100/70 mt-2">
-                معلمة متميزة 🎓
-              </div>
+
             </div>
           </div>
 
@@ -65,6 +69,7 @@ export default function Footer() {
               <span>•</span>
               <Link href="/summaries">📖 تلخيصات</Link>
             </div>
+
           </div>
         </div>
 
@@ -78,6 +83,7 @@ export default function Footer() {
             {" "} - جميع الحقوق محفوظة
           </div>
         </div>
+
       </div>
     </footer>
   );
