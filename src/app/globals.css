@@ -1,0 +1,393 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* ألوان اللوجو الرسمية */
+  --royal-700: #0B4A9B;
+  --royal-600: #134E9E;
+  --royal-500: #1F5FBF;
+  --royal-400: #4A7FCF;
+  --gold-500: #F6A623;
+  --gold-400: #F5B21F;
+  --gold-600: #e08c0a;
+  --dark: #0f172a;
+  --light: #ffffff;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  padding: 0;
+  margin: 0;
+  font-family: 'Cairo', 'Tajawal', system-ui, -apple-system, sans-serif;
+  direction: rtl;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(246, 166, 35, 0.08) 0%, transparent 35%),
+    radial-gradient(circle at 90% 100%, rgba(11, 74, 155, 0.10) 0%, transparent 40%),
+    linear-gradient(135deg, #f8fafc 0%, #eff6ff 50%, #fef9e7 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  color: #0f172a;
+}
+
+/* ================ Scrollbar ================ */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #eff6ff; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #1F5FBF, #0B4A9B);
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #F6A623, #0B4A9B);
+}
+
+/* ================ النصوص المتلألئة ================ */
+.shimmer-text {
+  background: linear-gradient(90deg, #0B4A9B 0%, #1F5FBF 25%, #F6A623 50%, #1F5FBF 75%, #0B4A9B 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmerText 4s linear infinite;
+}
+@keyframes shimmerText {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.gold-text {
+  background: linear-gradient(90deg, #F6A623, #F5B21F, #e08c0a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.royal-text {
+  background: linear-gradient(90deg, #0B4A9B, #134E9E, #1F5FBF);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ================ تأثير اللمعان للأزرار ================ */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn-shine::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.45), transparent);
+  transition: left 0.7s ease;
+  z-index: 1;
+}
+.btn-shine:hover::before { left: 100%; }
+.btn-shine > * { position: relative; z-index: 2; }
+
+/* ================ بطاقات زجاجية ================ */
+.glass-card {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 10px 40px rgba(11, 74, 155, 0.10);
+}
+
+.glass-dark {
+  background: rgba(11, 74, 155, 0.85);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* ================ تأثير Hover ================ */
+.hover-lift {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+.hover-lift:hover {
+  transform: translateY(-8px) scale(1.01);
+  box-shadow: 0 25px 50px rgba(11, 74, 155, 0.25);
+}
+
+.hover-zoom {
+  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.hover-zoom:hover { transform: scale(1.05); }
+
+/* ================ خلفية ملونة متحركة ================ */
+.gradient-bg {
+  background: linear-gradient(-45deg, #0B4A9B, #134E9E, #1F5FBF, #F6A623);
+  background-size: 400% 400%;
+  animation: gradientShift 18s ease infinite;
+}
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ================ بطاقات المراحل ================ */
+.stage-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.75rem;
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  isolation: isolate;
+}
+.stage-card::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg, #F6A623, #0B4A9B, #F6A623);
+  background-size: 200% 200%;
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  animation: gradientShift 4s ease infinite;
+}
+.stage-card:hover::before { opacity: 1; }
+.stage-card:hover {
+  transform: scale(1.04) translateY(-10px);
+  box-shadow: 0 30px 60px rgba(11, 74, 155, 0.35);
+}
+.stage-card img {
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.stage-card:hover img {
+  transform: scale(1.15) rotate(-1deg);
+}
+
+/* ================ تأثير النجوم ================ */
+@keyframes sparkle {
+  0%, 100% { opacity: 1; transform: scale(1) rotate(0); }
+  50% { opacity: 0.4; transform: scale(1.3) rotate(180deg); }
+}
+.sparkle { animation: sparkle 2.5s ease-in-out infinite; }
+
+/* ================ نمط النقاط الزخرفية ================ */
+.pattern-bg {
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(11, 74, 155, 0.08) 0%, transparent 35%),
+    radial-gradient(circle at 80% 70%, rgba(246, 166, 35, 0.10) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(31, 95, 191, 0.05) 0%, transparent 50%);
+}
+
+.dot-pattern {
+  background-image: radial-gradient(circle, #0B4A9B22 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ================ تنبيهات وحركات الدخول ================ */
+.toast { animation: slideInRight 0.4s ease-out; }
+@keyframes slideInRight {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* ================ Select المخصص ================ */
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%230B4A9B' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 0.75rem center;
+  background-size: 1.25em;
+  padding-left: 2.5rem;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+/* ================ منع التحديد ================ */
+.no-select {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ================ بطاقة الاختبار ================ */
+.exam-mode {
+  background:
+    radial-gradient(circle at 15% 0%, rgba(246, 166, 35, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 85% 100%, rgba(11, 74, 155, 0.10) 0%, transparent 40%),
+    linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+}
+
+/* ================ الأزرار الأساسية ================ */
+.btn-royal {
+  background: linear-gradient(135deg, #134E9E 0%, #0B4A9B 100%);
+  color: white;
+  font-weight: 700;
+  padding: 0.75rem 1.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 10px 25px -5px rgba(11, 74, 155, 0.5);
+  transition: all 0.3s ease;
+}
+.btn-royal:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 15px 35px -5px rgba(11, 74, 155, 0.6);
+  background: linear-gradient(135deg, #1F5FBF 0%, #134E9E 100%);
+}
+
+.btn-gold {
+  background: linear-gradient(135deg, #F6A623 0%, #e08c0a 100%);
+  color: white;
+  font-weight: 700;
+  padding: 0.75rem 1.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 10px 25px -5px rgba(246, 166, 35, 0.5);
+  transition: all 0.3s ease;
+}
+.btn-gold:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 15px 35px -5px rgba(246, 166, 35, 0.7);
+  background: linear-gradient(135deg, #F5B21F 0%, #F6A623 100%);
+}
+
+/* ================ طبعة لطيفة ================ */
+@media print {
+  .no-print { display: none !important; }
+}
+
+/* ================ Card Styles ================ */
+.card-premium {
+  background: white;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(11, 74, 155, 0.08);
+  box-shadow:
+    0 1px 3px rgba(11, 74, 155, 0.05),
+    0 10px 30px -5px rgba(11, 74, 155, 0.10);
+  transition: all 0.4s ease;
+}
+.card-premium:hover {
+  border-color: rgba(246, 166, 35, 0.4);
+  box-shadow:
+    0 1px 3px rgba(246, 166, 35, 0.1),
+    0 20px 40px -5px rgba(11, 74, 155, 0.15);
+}
+
+/* ================ Glow Effects ================ */
+.glow-gold {
+  box-shadow: 0 0 30px rgba(246, 166, 35, 0.3);
+}
+.glow-royal {
+  box-shadow: 0 0 30px rgba(11, 74, 155, 0.3);
+}
+
+/* ================ Floating Elements ================ */
+.floating-shape {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.15;
+  filter: blur(40px);
+}
+
+/* ================ Loader ================ */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(11, 74, 155, 0.1);
+  border-top-color: #0B4A9B;
+  border-right-color: #F6A623;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ================ Question card animation ================ */
+.question-card {
+  animation: scaleIn 0.5s ease-out backwards;
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ================ Underline decorative ================ */
+.gold-underline {
+  position: relative;
+  display: inline-block;
+}
+.gold-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, #F6A623, transparent);
+  border-radius: 2px;
+}
+
+/* ================ Pulse glow ================ */
+.pulse-glow {
+  animation: pulseGlow 2.5s ease-in-out infinite;
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(246, 166, 35, 0.5); }
+  50% { box-shadow: 0 0 0 15px rgba(246, 166, 35, 0); }
+}
+
+/* ================ Stats count ================ */
+.stat-card {
+  background: linear-gradient(135deg, white 0%, rgba(255,255,255,0.95) 100%);
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(11, 74, 155, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(246, 166, 35, 0.1) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.stat-card:hover::before { opacity: 1; }
+
+/* ================ Image hover effect ================ */
+.image-hover {
+  position: relative;
+  overflow: hidden;
+}
+.image-hover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(11, 74, 155, 0.3), transparent);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.image-hover:hover::after { opacity: 1; }
+
+/* ================ Logo container shine ================ */
+.logo-shine {
+  position: relative;
+}
+.logo-shine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 30%, rgba(246, 166, 35, 0.4), transparent 50%);
+  border-radius: 50%;
+  filter: blur(20px);
+  opacity: 0.6;
+  z-index: -1;
+}
