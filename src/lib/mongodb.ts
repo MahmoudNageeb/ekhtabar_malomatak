@@ -76,16 +76,17 @@ export async function connectDB() {
     return global._mongoConnection;
   }
 
-  let uri = process.env.MONGODB_URI;
+  let uri = process.env.MONGODB_URI?.trim();
 
-  // على Vercel/Production لازم يكون MONGODB_URI متاح
+  // على Vercel فقط لازم يكون MONGODB_URI متاح
+  // (في التطوير المحلي حتى لو production build، نستخدم MongoDB Memory Server)
   if (!uri) {
-    if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+    if (process.env.VERCEL) {
       throw new Error(
         '❌ MONGODB_URI غير موجود! من فضلك أضف رابط MongoDB Atlas في إعدادات Vercel Environment Variables'
       );
     }
-    // تطوير محلي فقط
+    // تطوير محلي - يستخدم MongoDB Memory Server
     uri = await startLocalMongo();
   }
 
