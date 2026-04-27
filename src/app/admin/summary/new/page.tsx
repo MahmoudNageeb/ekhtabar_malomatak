@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import HomeButton from '@/components/HomeButton';
+import ImageUpload from '@/components/ImageUpload';
 import { PRIMARY_GRADES } from '@/lib/constants';
 
 export default function NewSummaryPage() {
@@ -29,7 +30,15 @@ export default function NewSummaryPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    if (!title || !url) return setError('العنوان والرابط مطلوبان');
+    if (!title) return setError('العنوان مطلوب');
+
+    // 🆕 التحقق المختلف حسب النوع
+    if (type === 'image') {
+      if (!url) return setError('من فضلك ارفع صورة التلخيص');
+    } else {
+      if (!url) return setError('الرابط مطلوب');
+    }
+
     setSaving(true);
     const res = await fetch('/api/summaries', {
       method: 'POST',
@@ -95,11 +104,11 @@ export default function NewSummaryPage() {
             <label className="block text-sm font-bold text-gray-700 mb-2">نوع التلخيص</label>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { v: 'image', l: '🖼️ صورة', d: 'صورة من الإنترنت' },
+                { v: 'image', l: '🖼️ صورة', d: 'ارفع صورة من جهازك' },
                 { v: 'youtube', l: '🎥 يوتيوب', d: 'رابط فيديو يوتيوب' },
                 { v: 'file', l: '📄 ملف', d: 'رابط ملف PDF' }
               ].map((t) => (
-                <button key={t.v} type="button" onClick={() => setType(t.v as any)}
+                <button key={t.v} type="button" onClick={() => { setType(t.v as any); setUrl(''); }}
                   className={`p-3 rounded-2xl border-2 font-bold transition-all ${type === t.v ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-gray-200 bg-white text-gray-600'}`}>
                   <div>{t.l}</div>
                   <div className="text-xs opacity-70 mt-0.5">{t.d}</div>
@@ -108,20 +117,41 @@ export default function NewSummaryPage() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">الرابط</label>
-            <input type="url" value={url} onChange={(e) => setUrl(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-amber-200 rounded-2xl focus:outline-none focus:border-amber-500"
-              placeholder={type === 'youtube' ? 'https://youtube.com/...' : type === 'image' ? 'https://res.cloudinary.com/...' : 'https://drive.google.com/...'} required />
-          </div>
+          {/* 🆕 رفع صورة بدلاً من رابط - حسب نوع التلخيص */}
+          {type === 'image' ? (
+            <div>
+              <ImageUpload
+                value={url}
+                onChange={setUrl}
+                folder="ekhtabar/summaries"
+                label="📸 صورة التلخيص"
+                aspectRatio="wide"
+                required
+              />
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1">
+                {type === 'youtube' ? '🎥 رابط فيديو يوتيوب' : '📄 رابط الملف (PDF / Drive)'}
+              </label>
+              <input type="url" value={url} onChange={(e) => setUrl(e.target.value)}
+                className="w-full px-4 py-3 border-2 border-amber-200 rounded-2xl focus:outline-none focus:border-amber-500"
+                placeholder={type === 'youtube' ? 'https://youtube.com/watch?v=...' : 'https://drive.google.com/...'} required />
+            </div>
+          )}
 
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">رابط صورة الغلاف (اختياري)</label>
-            <input type="url" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-amber-200 rounded-2xl focus:outline-none focus:border-amber-500"
-              placeholder="رابط صورة لتظهر كغلاف للتلخيص (يفضل لليوتيوب والملفات)" />
-            <p className="text-xs text-gray-500 mt-1">💡 إذا كان النوع "صورة" ولم تضف غلافًا، سيتم استخدام الرابط نفسه كغلاف</p>
-          </div>
+          {/* 🆕 صورة الغلاف - رفع من الجهاز (للفيديوهات والملفات) */}
+          {type !== 'image' && (
+            <div>
+              <ImageUpload
+                value={imageUrl}
+                onChange={setImageUrl}
+                folder="ekhtabar/summary-covers"
+                label="🖼️ صورة الغلاف (اختياري - تظهر كغلاف)"
+                aspectRatio="wide"
+              />
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-bold text-gray-700 mb-1">وصف (اختياري)</label>
