@@ -44,7 +44,7 @@ export default function EditQuizPage() {
           <div className="text-gray-400">/</div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-gray-800 truncate">تعديل: {quiz.title}</h1>
         </div>
-        <QuizEditor initial={quiz} quizId={Number(params.id)} />
+        <QuizEditor initial={quiz} quizId={params.id} />
       </main>
     </div>
   );
