@@ -1,8 +1,9 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { PRIMARY_GRADES, ARABIC_LETTERS } from '@/lib/constants';
+import ImageUpload from './ImageUpload';
 
 type Q = {
   questionText: string;
@@ -12,6 +13,8 @@ type Q = {
   optionC: string;
   optionD: string;
   correctAnswer: string;
+  points: number;
+  imageUrl: string;
 };
 
 const emptyQ = (): Q => ({
@@ -21,15 +24,19 @@ const emptyQ = (): Q => ({
   optionB: '',
   optionC: '',
   optionD: '',
-  correctAnswer: 'A'
+  correctAnswer: 'A',
+  points: 1,
+  imageUrl: ''
 });
 
-export default function QuizEditor({ initial, quizId }: { initial?: any; quizId?: number }) {
+export default function QuizEditor({ initial, quizId }: { initial?: any; quizId?: string }) {
   const router = useRouter();
   const [title, setTitle] = useState(initial?.title || '');
   const [stage, setStage] = useState(initial?.stage || 'primary');
   const [grade, setGrade] = useState(initial?.grade || 'grade-1');
   const [duration, setDuration] = useState(initial?.duration || 15);
+  const [passingScore, setPassingScore] = useState(initial?.passingScore ?? 50);
+  const [coverImage, setCoverImage] = useState(initial?.coverImage || '');
   const [questions, setQuestions] = useState<Q[]>(
     initial?.questions?.length
       ? initial.questions.map((q: any) => ({
@@ -39,7 +46,9 @@ export default function QuizEditor({ initial, quizId }: { initial?: any; quizId?
           optionB: q.optionB || '',
           optionC: q.optionC || '',
           optionD: q.optionD || '',
-          correctAnswer: q.correctAnswer
+          correctAnswer: q.correctAnswer,
+          points: q.points ?? 1,
+          imageUrl: q.imageUrl || ''
         }))
       : [emptyQ()]
   );
@@ -47,6 +56,11 @@ export default function QuizEditor({ initial, quizId }: { initial?: any; quizId?
   const [error, setError] = useState('');
   const [activeIdx, setActiveIdx] = useState(0);
   const refs = useRef<(HTMLDivElement | null)[]>([]);
+
+  const totalPoints = useMemo(() =>
+    questions.reduce((sum, q) => sum + (Number(q.points) || 0), 0),
+    [questions]
+  );
 
   useEffect(() => {
     refs.current[activeIdx]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -71,12 +85,16 @@ export default function QuizEditor({ initial, quizId }: { initial?: any; quizId?
     setActiveIdx(Math.max(0, idx - 1));
   }
 
+  function setAllPoints(value: number) {
+    if (!confirm(`تطبيق ${value} نقطة على كل الأسئلة (${questions.length} سؤال)؟`)) return;
+    setQuestions((prev) => prev.map((q) => ({ ...q, points: value })));
+  }
+
   function moveTo(direction: 'prev' | 'next') {
     if (direction === 'prev' && activeIdx > 0) setActiveIdx(activeIdx - 1);
     if (direction === 'next' && activeIdx < questions.length - 1) setActiveIdx(activeIdx + 1);
   }
 
-  // التنقل بالأسهم بين الحقول
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'ArrowDown' && e.altKey) { e.preventDefault(); moveTo('next'); }
     if (e.key === 'ArrowUp' && e.altKey) { e.preventDefault(); moveTo('prev'); }
@@ -87,10 +105,12 @@ export default function QuizEditor({ initial, quizId }: { initial?: any; quizId?
     if (!title.trim()) return setError('أدخل عنوان الاختبار');
     if (!duration || duration < 1) return setError('أدخل مدة صحيحة');
     if (!questions.length) return setError('أضف سؤالاً واحدًا على الأقل');
+    if (passingScore < 0 || passingScore > 100) return setError('نسبة النجاح بين 0 و 100');
 
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
       if (!q.questionText.trim()) return setError(`السؤال ${i + 1}: نص السؤال مطلوب`);
+      if (q.points < 0) return setError(`السؤال ${i + 1}: النقاط لا يمكن أن تكون سالبة`);
       if (q.type === 'mcq') {
         if (!q.optionA.trim() || !q.optionB.trim() || !q.optionC.trim()) {
           return setError(`السؤال ${i + 1}: يجب ملء الاختيارات أ، ب، ج على الأقل`);
@@ -109,17 +129,25 @@ export default function QuizEditor({ initial, quizId }: { initial?: any; quizId?
     }
 
     setSaving(true);
+    // 🆕 PUT للتحديث (يحدّث نفس الاختبار، لا ينشئ جديد)، POST للإنشاء
     const url = quizId ? `/api/quizzes/${quizId}` : '/api/quizzes';
     const method = quizId ? 'PUT' : 'POST';
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, stage, grade, duration: Number(duration), questions })
+      body: JSON.stringify({
+        title, stage, grade,
+        duration: Number(duration),
+        passingScore: Number(passingScore),
+        coverImage: coverImage || null,
+        questions
+      })
     });
     const data = await res.json();
     setSaving(false);
     if (!res.ok) return setError(data.error || 'خطأ');
     router.push('/admin/quizzes');
+    router.refresh();
   }
 
   const grades = stage === 'primary' ? PRIMARY_GRADES : [
@@ -173,8 +201,8 @@ export default function QuizEditor({ initial, quizId }: { initial?: any; quizId?
             </select>
           </div>
 
-          <div className="md:col-span-2">
-            <label className="block text-sm font-bold text-gray-700 mb-1">المدة (بالدقائق)</label>
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-1">⏱️ المدة (بالدقائق)</label>
             <input
               type="number"
               min={1}
@@ -183,6 +211,62 @@ export default function QuizEditor({ initial, quizId }: { initial?: any; quizId?
               className="w-full px-4 py-3 border-2 border-blue-200 rounded-2xl focus:outline-none focus:border-blue-500"
             />
           </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-1">🎯 نسبة النجاح (%)</label>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              value={passingScore}
+              onChange={(e) => setPassingScore(Number(e.target.value))}
+              className="w-full px-4 py-3 border-2 border-blue-200 rounded-2xl focus:outline-none focus:border-blue-500"
+            />
+          </div>
+
+          {/* 🆕 صورة غلاف الاختبار - رفع من الجهاز */}
+          <div className="md:col-span-2">
+            <ImageUpload
+              value={coverImage}
+              onChange={setCoverImage}
+              folder="ekhtabar/quiz-covers"
+              label="🖼️ صورة غلاف الاختبار (اختياري)"
+              aspectRatio="wide"
+            />
+          </div>
+        </div>
+
+        {/* ملخص النقاط */}
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-3 text-center">
+            <div className="text-xs text-blue-600 font-bold mb-1">عدد الأسئلة</div>
+            <div className="text-2xl font-extrabold text-blue-700">{questions.length}</div>
+          </div>
+          <div className="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-3 text-center">
+            <div className="text-xs text-emerald-600 font-bold mb-1">إجمالي النقاط</div>
+            <div className="text-2xl font-extrabold text-emerald-700">{totalPoints}</div>
+          </div>
+          <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-3 text-center">
+            <div className="text-xs text-amber-600 font-bold mb-1">نقاط النجاح</div>
+            <div className="text-2xl font-extrabold text-amber-700">
+              {Math.ceil((passingScore / 100) * totalPoints)}
+            </div>
+          </div>
+        </div>
+
+        {/* أدوات سريعة للنقاط */}
+        <div className="mt-4 flex flex-wrap gap-2 items-center">
+          <span className="text-sm font-bold text-gray-700">تطبيق سريع للنقاط:</span>
+          {[1, 2, 3, 5, 10].map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setAllPoints(p)}
+              className="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-xl font-bold text-sm transition"
+            >
+              {p} لكل سؤال
+            </button>
+          ))}
         </div>
       </div>
 
@@ -232,14 +316,29 @@ export default function QuizEditor({ initial, quizId }: { initial?: any; quizId?
             ref={(el) => { refs.current[idx] = el; }}
             className={`bg-white rounded-3xl shadow-md p-5 border-2 transition-all ${idx === activeIdx ? 'border-blue-500 ring-4 ring-blue-100' : 'border-gray-200'}`}
           >
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <div className="bg-gradient-to-br from-blue-500 to-indigo-600 w-10 h-10 rounded-xl flex items-center justify-center font-extrabold text-white shadow-md">
                   {idx + 1}
                 </div>
                 <span className="font-bold text-gray-700">السؤال {idx + 1}</span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center flex-wrap">
+                {/* 🆕 نقاط السؤال */}
+                <div className="flex items-center gap-1.5 bg-amber-50 border-2 border-amber-200 rounded-xl px-2 py-1">
+                  <span className="text-amber-600 text-sm font-bold">⭐</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    value={q.points}
+                    onChange={(e) => updateQ(idx, { points: Number(e.target.value) })}
+                    className="w-16 px-1 py-0.5 bg-transparent border-0 text-amber-700 font-extrabold text-center focus:outline-none"
+                    title="نقاط هذا السؤال"
+                  />
+                  <span className="text-amber-600 text-xs font-bold">نقطة</span>
+                </div>
+
                 <select
                   value={q.type}
                   onChange={(e) => updateQ(idx, {
@@ -269,6 +368,17 @@ export default function QuizEditor({ initial, quizId }: { initial?: any; quizId?
                 onChange={(e) => updateQ(idx, { questionText: e.target.value })}
                 className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 resize-none"
                 placeholder="اكتب نص السؤال هنا..."
+              />
+            </div>
+
+            {/* 🆕 صورة السؤال (اختياري) */}
+            <div className="mt-3">
+              <ImageUpload
+                value={q.imageUrl}
+                onChange={(url) => updateQ(idx, { imageUrl: url })}
+                folder="ekhtabar/questions"
+                label="🖼️ صورة السؤال (اختياري)"
+                aspectRatio="wide"
               />
             </div>
 
@@ -332,7 +442,7 @@ export default function QuizEditor({ initial, quizId }: { initial?: any; quizId?
           </div>
         ))}
 
-        {/* زر إضافة سؤال - بعد آخر سؤال */}
+        {/* زر إضافة سؤال */}
         <button
           onClick={addQuestion}
           className="w-full py-4 bg-gradient-to-l from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-2xl font-extrabold shadow-lg btn-shine transition-all"
@@ -354,7 +464,7 @@ export default function QuizEditor({ initial, quizId }: { initial?: any; quizId?
           disabled={saving}
           className="flex-1 min-w-[150px] py-3 bg-gradient-to-l from-emerald-500 to-teal-600 text-white rounded-2xl font-extrabold shadow-lg btn-shine disabled:opacity-50"
         >
-          {saving ? '⏳ جاري الحفظ...' : '💾 حفظ ونشر الاختبار'}
+          {saving ? '⏳ جاري الحفظ...' : (quizId ? '💾 حفظ التعديلات' : '💾 حفظ ونشر الاختبار')}
         </button>
         <Link
           href="/admin/quizzes"
