@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   if (search) where.title = { $regex: search, $options: 'i' };
 
   const quizzes = await Quiz.find(where)
-    .select('title stage grade duration isActive createdAt questions')
+    .select('title stage grade duration isActive passingScore coverImage createdAt updatedAt questions')
     .sort({ createdAt: -1 })
     .lean();
 
@@ -34,8 +34,12 @@ export async function GET(req: NextRequest) {
     grade: q.grade,
     duration: q.duration,
     isActive: q.isActive,
+    passingScore: q.passingScore ?? 50,
+    coverImage: q.coverImage || null,
     createdAt: q.createdAt,
-    questionCount: q.questions?.length || 0
+    updatedAt: q.updatedAt,
+    questionCount: q.questions?.length || 0,
+    totalPoints: (q.questions || []).reduce((sum: number, qq: any) => sum + (qq.points ?? 1), 0)
   }));
 
   return NextResponse.json({ quizzes: list });
@@ -48,7 +52,7 @@ export async function POST(req: NextRequest) {
   if (!user?.isAdmin) return NextResponse.json({ error: 'غير مصرح' }, { status: 403 });
 
   try {
-    const { title, stage, grade, duration, questions } = await req.json();
+    const { title, stage, grade, duration, passingScore, coverImage, questions } = await req.json();
 
     if (!title || !stage || !grade || !duration || !Array.isArray(questions) || questions.length === 0) {
       return NextResponse.json({ error: 'كل البيانات مطلوبة وأضف على الأقل سؤالاً واحدًا' }, { status: 400 });
@@ -59,6 +63,8 @@ export async function POST(req: NextRequest) {
       stage,
       grade,
       duration: Number(duration),
+      passingScore: passingScore !== undefined ? Number(passingScore) : 50,
+      coverImage: coverImage || null,
       questions: questions.map((q: any, i: number) => ({
         questionText: q.questionText,
         type: q.type || 'mcq',
@@ -67,6 +73,8 @@ export async function POST(req: NextRequest) {
         optionC: q.optionC || null,
         optionD: q.optionD || null,
         correctAnswer: String(q.correctAnswer),
+        points: q.points !== undefined ? Number(q.points) : 1,
+        imageUrl: q.imageUrl || null,
         order: i
       }))
     });
