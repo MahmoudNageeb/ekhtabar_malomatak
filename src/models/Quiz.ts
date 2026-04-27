@@ -10,6 +10,8 @@ export interface IQuestion {
   optionD?: string;
   correctAnswer: string;
   order: number;
+  points: number; // 🆕 نقاط السؤال (يتحكم بها الأدمن)
+  imageUrl?: string; // 🆕 صورة اختيارية للسؤال
 }
 
 export interface IQuiz extends Document {
@@ -19,7 +21,10 @@ export interface IQuiz extends Document {
   duration: number;
   isActive: boolean;
   questions: IQuestion[];
+  passingScore: number; // 🆕 نسبة النجاح (0-100)
+  coverImage?: string; // 🆕 صورة غلاف الاختبار
   createdAt: Date;
+  updatedAt: Date;
 }
 
 const QuestionSchema = new Schema<IQuestion>({
@@ -30,7 +35,9 @@ const QuestionSchema = new Schema<IQuestion>({
   optionC: String,
   optionD: String,
   correctAnswer: { type: String, required: true },
-  order: { type: Number, default: 0 }
+  order: { type: Number, default: 0 },
+  points: { type: Number, default: 1, min: 0 }, // 🆕
+  imageUrl: { type: String, default: null } // 🆕
 }, { _id: true });
 
 const QuizSchema = new Schema<IQuiz>({
@@ -40,8 +47,11 @@ const QuizSchema = new Schema<IQuiz>({
   duration: { type: Number, required: true },
   isActive: { type: Boolean, default: true },
   questions: [QuestionSchema],
-  createdAt: { type: Date, default: Date.now }
-});
+  passingScore: { type: Number, default: 50, min: 0, max: 100 }, // 🆕
+  coverImage: { type: String, default: null }, // 🆕
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+}, { timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' } });
 
 QuizSchema.index({ grade: 1, stage: 1, isActive: 1 });
 QuizSchema.index({ title: 'text' });
