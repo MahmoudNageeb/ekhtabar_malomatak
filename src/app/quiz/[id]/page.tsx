@@ -149,11 +149,20 @@ export default function QuizPage() {
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold shimmer-text mb-2">{quiz.title}</h1>
 
-            <div className="mt-6 grid grid-cols-2 gap-3">
+            {/* 🆕 صورة غلاف الاختبار */}
+            {quiz.coverImage && (
+              <div className="mt-4 rounded-2xl overflow-hidden border-2 border-amber-200 shadow-md aspect-video max-w-md mx-auto">
+                <img src={quiz.coverImage} alt={quiz.title} className="w-full h-full object-cover" />
+              </div>
+            )}
+
+            <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3">
               <InfoBox icon="❓" label="عدد الأسئلة" value={quiz.questions?.length || 0} />
-              <InfoBox icon="⏱️" label="مدة الاختبار" value={`${quiz.duration} دقيقة`} />
-              <InfoBox icon="🎯" label="الصف" value={quiz.grade || ''} />
+              <InfoBox icon="⏱️" label="المدة" value={`${quiz.duration} دقيقة`} />
+              <InfoBox icon="⭐" label="إجمالي النقاط" value={quiz.totalPoints || quiz.questions?.length || 0} />
+              <InfoBox icon="🎯" label="نسبة النجاح" value={`${quiz.passingScore || 50}%`} />
               <InfoBox icon="📚" label="المرحلة" value={quiz.stage === 'primary' ? 'ابتدائي' : 'إعدادي'} />
+              <InfoBox icon="🎓" label="الصف" value={quiz.grade || ''} />
             </div>
 
             <div className="mt-6 bg-gradient-to-l from-gold-50 to-amber-50 border-2 border-gold-300 rounded-2xl p-4 text-right text-sm">
@@ -263,7 +272,21 @@ function QuestionCard({ question, index, value, onChange }: any) {
         <h2 className="flex-1 text-base sm:text-lg font-extrabold text-gray-800 leading-relaxed">
           {question.questionText}
         </h2>
+        {/* 🆕 شارة نقاط السؤال */}
+        {question.points != null && (
+          <div className="flex-shrink-0 bg-gradient-to-br from-amber-400 to-orange-500 text-white px-3 py-1.5 rounded-xl font-extrabold text-sm shadow-md flex items-center gap-1">
+            <span>⭐</span>
+            <span>{question.points}</span>
+          </div>
+        )}
       </div>
+
+      {/* 🆕 صورة السؤال */}
+      {question.imageUrl && (
+        <div className="mb-4 rounded-2xl overflow-hidden border-2 border-gray-200 shadow-md max-h-80 flex items-center justify-center bg-gray-50">
+          <img src={question.imageUrl} alt={`سؤال ${index + 1}`} className="max-w-full max-h-80 object-contain" />
+        </div>
+      )}
 
       <div className={`grid ${isMcq ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2'} gap-3`}>
         {options.map((opt, i) => {
@@ -330,6 +353,17 @@ function ResultsView({ result, quiz, onRetake }: any) {
             <div className="inline-block bg-white/20 backdrop-blur-sm rounded-3xl px-8 py-4 border-2 border-white/30">
               <div className="text-5xl sm:text-6xl font-extrabold">{percentage}%</div>
               <div className="text-base sm:text-lg mt-1 opacity-95">{score} من {total} إجابة صحيحة</div>
+              {totalPoints != null && totalPoints > 0 && (
+                <div className="mt-3 pt-3 border-t border-white/30 flex items-center justify-center gap-2 text-lg font-extrabold">
+                  <span className="text-2xl">⭐</span>
+                  <span>{earnedPoints} من {totalPoints} نقطة</span>
+                </div>
+              )}
+              {passingScore != null && (
+                <div className={`mt-2 inline-block px-4 py-1 rounded-full text-sm font-bold ${passed ? 'bg-emerald-500/40' : 'bg-red-500/40'}`}>
+                  {passed ? '✅ ناجح' : '❌ راسب'} (نسبة النجاح {passingScore}%)
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -361,7 +395,7 @@ function ResultsView({ result, quiz, onRetake }: any) {
           <h3 className="text-xl font-extrabold text-gray-800 mb-4">📝 مراجعة الإجابات</h3>
           <div className="space-y-4">
             {detailed.map((q: any, idx: number) => (
-              <ReviewQuestion key={q.questionId} q={q} idx={idx} />
+              <ReviewQuestion key={q.questionId} q={q} idx={idx} showPoints />
             ))}
           </div>
         </div>
@@ -370,7 +404,7 @@ function ResultsView({ result, quiz, onRetake }: any) {
   );
 }
 
-function ReviewQuestion({ q, idx }: any) {
+function ReviewQuestion({ q, idx, showPoints }: any) {
   const isMcq = q.type === 'mcq';
   const options = isMcq
     ? [
@@ -391,10 +425,24 @@ function ReviewQuestion({ q, idx }: any) {
           {q.isCorrect ? '✓' : '✗'}
         </div>
         <div className="flex-1">
-          <div className="text-sm text-gray-500 mb-1">السؤال {idx + 1}</div>
+          <div className="text-sm text-gray-500 mb-1 flex items-center gap-2 flex-wrap">
+            <span>السؤال {idx + 1}</span>
+            {showPoints && q.points != null && (
+              <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-0.5 rounded-lg text-xs font-bold">
+                ⭐ {q.earnedPoints ?? 0}/{q.points}
+              </span>
+            )}
+          </div>
           <h4 className="font-extrabold text-gray-800">{q.questionText}</h4>
         </div>
       </div>
+
+      {/* صورة السؤال في المراجعة */}
+      {q.imageUrl && (
+        <div className="mb-3 mr-12 rounded-xl overflow-hidden border-2 border-gray-200 max-h-48 flex items-center justify-center bg-white">
+          <img src={q.imageUrl} alt={`سؤال ${idx + 1}`} className="max-w-full max-h-48 object-contain" />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mr-12">
         {options.map((opt, i) => {
