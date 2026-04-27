@@ -34,7 +34,7 @@ export default function AdminQuizzesPage() {
     load();
   }
 
-  async function deleteQuiz(id: number) {
+  async function deleteQuiz(id: string) {
     if (!confirm('هل أنت متأكد من حذف هذا الاختبار؟ سيتم حذف كل النتائج المرتبطة به.')) return;
     await fetch(`/api/quizzes/${id}`, { method: 'DELETE' });
     load();
@@ -69,13 +69,28 @@ export default function AdminQuizzesPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {quizzes.map((q) => (
-              <div key={q.id} className={`bg-white rounded-3xl shadow-md p-5 border-2 transition-all ${q.isActive ? 'border-emerald-200' : 'border-gray-200 opacity-70'}`}>
+              <div key={q.id} className={`bg-white rounded-3xl shadow-md overflow-hidden border-2 transition-all ${q.isActive ? 'border-emerald-200' : 'border-gray-200 opacity-70'}`}>
+                {/* صورة الغلاف */}
+                {q.coverImage && (
+                  <div className="aspect-video w-full bg-gray-100 overflow-hidden">
+                    <img src={q.coverImage} alt={q.title} className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <div className="p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <h3 className="font-extrabold text-lg text-gray-800">{q.title}</h3>
                     <p className="text-sm text-gray-500 mt-1">
-                      {PRIMARY_GRADES.find((g) => g.id === q.grade)?.short || q.grade} • ⏱️ {q.duration} د • ❓ {q._count?.questions || 0}
+                      {PRIMARY_GRADES.find((g) => g.id === q.grade)?.short || q.grade} • ⏱️ {q.duration} د • ❓ {q.questionCount || 0}
                     </p>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 px-2 py-0.5 rounded-lg text-xs font-bold border border-amber-200">
+                        ⭐ {q.totalPoints || 0} نقطة
+                      </span>
+                      <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-0.5 rounded-lg text-xs font-bold border border-blue-200">
+                        🎯 نجاح {q.passingScore || 50}%
+                      </span>
+                    </div>
                   </div>
                   <span className={`text-xs font-bold px-2 py-1 rounded-full ${q.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'}`}>
                     {q.isActive ? '✓ نشط' : '⏸ معطل'}
@@ -91,6 +106,7 @@ export default function AdminQuizzesPage() {
                   <button onClick={() => deleteQuiz(q.id)} className="flex-1 min-w-[100px] px-3 py-2 bg-red-100 text-red-700 rounded-xl font-bold hover:bg-red-200 transition text-sm">
                     🗑 حذف
                   </button>
+                </div>
                 </div>
               </div>
             ))}
