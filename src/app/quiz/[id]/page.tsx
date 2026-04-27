@@ -13,9 +13,11 @@ export default function QuizPage() {
   const [loading, setLoading] = useState(true);
   const [started, setStarted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [timeLeft, setTimeLeft] = useState(0);
   const [result, setResult] = useState<any>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string>('');
   const submittingRef = useRef(false);
   const startedRef = useRef(false);
 
@@ -82,25 +84,49 @@ export default function QuizPage() {
   async function handleSubmit(auto = false) {
     if (submittingRef.current) return;
     submittingRef.current = true;
-    setSubmitted(true);
+    setSubmitting(true);
+    setSubmitError('');
 
-    const res = await fetch(`/api/quizzes/${params.id}/submit`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ answers })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      alert(data.error || 'حدث خطأ');
+    try {
+      const res = await fetch(`/api/quizzes/${params.id}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers }),
+        credentials: 'include'
+      });
+
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+
+      if (!res.ok) {
+        const errMsg = data?.error || `فشل التسليم (HTTP ${res.status})`;
+        setSubmitError(errMsg);
+        alert(errMsg);
+        submittingRef.current = false;
+        setSubmitting(false);
+        return;
+      }
+
+      // ✅ نجح التسليم - اعرض النتيجة
+      setResult(data);
+      setSubmitted(true);
+      setSubmitting(false);
+    } catch (err: any) {
+      console.error('Submit error:', err);
+      const errMsg = 'حدث خطأ في الاتصال. تأكد من اتصال الإنترنت ثم حاول مجددًا.';
+      setSubmitError(errMsg);
+      alert(errMsg);
       submittingRef.current = false;
-      setSubmitted(false);
-      return;
+      setSubmitting(false);
     }
-    setResult(data);
   }
 
-  function selectAnswer(qid: number, val: string) {
-    setAnswers({ ...answers, [qid]: val });
+  function selectAnswer(qid: string, val: string) {
+    setAnswers((prev) => ({ ...prev, [qid]: val }));
   }
 
   function formatTime(s: number) {
@@ -123,9 +149,20 @@ export default function QuizPage() {
     </div>
   );
 
-  // النتيجة بعد التسليم
-  if (submitted && result) {
+  // ✅ النتيجة بعد التسليم - تكفي وجود result
+  if (result) {
     return <ResultsView result={result} quiz={quiz} onRetake={() => location.reload()} />;
+  }
+
+  // ⏳ شاشة التسليم الجاري
+  if (submitting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center flex-col gap-4 bg-gradient-to-br from-royal-50 to-gold-50 p-4">
+        <div className="spinner"></div>
+        <div className="text-royal-700 font-extrabold text-xl">⏳ جاري تسليم الاختبار وحساب النتيجة...</div>
+        <div className="text-gray-500 text-sm">من فضلك انتظر قليلًا</div>
+      </div>
+    );
   }
 
   // قبل البدء - شاشة المعلومات
@@ -223,15 +260,24 @@ export default function QuizPage() {
           />
         ))}
 
+        {/* رسالة خطأ التسليم (إن وجدت) */}
+        {submitError && (
+          <div className="bg-red-50 border-2 border-red-300 text-red-800 rounded-2xl p-4 font-bold text-center">
+            ⚠️ {submitError}
+          </div>
+        )}
+
         {/* زر التسليم */}
         <div className="sticky bottom-4 z-30">
           <button
             onClick={() => {
+              if (submitting) return;
               if (confirm('هل أنت متأكد من تسليم الاختبار؟')) handleSubmit(false);
             }}
-            className="w-full py-4 bg-gradient-to-l from-emerald-500 via-emerald-600 to-teal-600 hover:from-gold-500 hover:to-gold-600 text-white rounded-2xl font-extrabold text-xl shadow-2xl btn-shine transition-all border-2 border-white"
+            disabled={submitting}
+            className={`w-full py-4 ${submitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-l from-emerald-500 via-emerald-600 to-teal-600 hover:from-gold-500 hover:to-gold-600'} text-white rounded-2xl font-extrabold text-xl shadow-2xl btn-shine transition-all border-2 border-white`}
           >
-            ✅ تسليم الاختبار
+            {submitting ? '⏳ جاري التسليم...' : '✅ تسليم الاختبار'}
           </button>
         </div>
       </div>
@@ -322,7 +368,16 @@ function QuestionCard({ question, index, value, onChange }: any) {
 }
 
 function ResultsView({ result, quiz, onRetake }: any) {
-  const { score, total, percentage, detailed } = result;
+  const {
+    score = 0,
+    total = 0,
+    percentage = 0,
+    detailed = [],
+    earnedPoints = 0,
+    totalPoints = 0,
+    passingScore,
+    passed
+  } = result || {};
 
   let message = '';
   let emoji = '';
