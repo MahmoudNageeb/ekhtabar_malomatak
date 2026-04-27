@@ -24,17 +24,31 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const sortedQuestions = (quiz.questions || []).sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
 
-  let score = 0;
+  // 🆕 حساب النقاط بناءً على نقاط كل سؤال (يتحكم بها الأدمن)
+  let earnedPoints = 0;
+  let totalPoints = 0;
+  let correctCount = 0;
+
   const detailed = sortedQuestions.map((q: any) => {
     const qid = String(q._id);
     const userAnswer = answers?.[qid] ?? null;
     const correct = userAnswer != null && String(userAnswer).toLowerCase() === String(q.correctAnswer).toLowerCase();
-    if (correct) score++;
+    const questionPoints = q.points ?? 1;
+
+    totalPoints += questionPoints;
+    if (correct) {
+      earnedPoints += questionPoints;
+      correctCount++;
+    }
+
     return {
       questionId: qid,
       questionText: q.questionText,
       type: q.type,
       options: { A: q.optionA, B: q.optionB, C: q.optionC, D: q.optionD },
+      imageUrl: q.imageUrl || null,
+      points: questionPoints,
+      earnedPoints: correct ? questionPoints : 0,
       userAnswer,
       correctAnswer: q.correctAnswer,
       isCorrect: correct
@@ -42,34 +56,46 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   });
 
   const total = sortedQuestions.length;
-  const percentage = total ? Math.round((score / total) * 100) : 0;
+  // 🆕 النسبة بناءً على النقاط (وليس عدد الأسئلة)
+  const percentage = totalPoints ? Math.round((earnedPoints / totalPoints) * 100) : 0;
+  const passingScore = quiz.passingScore ?? 50;
+  const passed = percentage >= passingScore;
 
   const result = await QuizResult.create({
     userId: user.id,
     quizId: quiz._id,
-    score,
+    score: correctCount,           // عدد الإجابات الصحيحة
     totalQuestions: total,
+    earnedPoints,                  // 🆕 النقاط المحققة
+    totalPoints,                   // 🆕 إجمالي النقاط
     percentage,
+    passed,                        // 🆕 هل نجح؟
+    passingScore,                  // 🆕 نسبة النجاح وقت الحل
     answers: detailed
   });
 
-  // تحديث totalPoints بأخذ أعلى نسبة لكل اختبار
-  const allResults = await QuizResult.find({ userId: user.id }).select('quizId percentage').lean();
+  // تحديث totalPoints بأخذ أعلى نقاط لكل اختبار
+  const allResults = await QuizResult.find({ userId: user.id }).select('quizId earnedPoints percentage').lean();
   const bestPerQuiz = new Map<string, number>();
   for (const r of allResults) {
     const qid = String(r.quizId);
+    const points = r.earnedPoints ?? r.percentage ?? 0; // backward compatible
     const prev = bestPerQuiz.get(qid) || 0;
-    if (r.percentage > prev) bestPerQuiz.set(qid, r.percentage);
+    if (points > prev) bestPerQuiz.set(qid, points);
   }
-  const totalPoints = Array.from(bestPerQuiz.values()).reduce((a, b) => a + b, 0);
-  await User.findByIdAndUpdate(user.id, { totalPoints });
+  const userTotalPoints = Array.from(bestPerQuiz.values()).reduce((a, b) => a + b, 0);
+  await User.findByIdAndUpdate(user.id, { totalPoints: userTotalPoints });
 
   return NextResponse.json({
     success: true,
     resultId: String(result._id),
-    score,
+    score: correctCount,
     total,
+    earnedPoints,
+    totalPoints,
     percentage,
+    passingScore,
+    passed,
     detailed
   });
 }
