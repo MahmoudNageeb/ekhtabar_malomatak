@@ -34,11 +34,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       optionB: q.optionB,
       optionC: q.optionC,
       optionD: q.optionD,
-      order: q.order
+      order: q.order,
+      points: q.points ?? 1,
+      imageUrl: q.imageUrl || null
     };
     if (user?.isAdmin) base.correctAnswer = q.correctAnswer;
     return base;
   });
+
+  const totalPoints = sortedQuestions.reduce((sum: number, q: any) => sum + (q.points ?? 1), 0);
 
   return NextResponse.json({
     quiz: {
@@ -48,13 +52,17 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       grade: quiz.grade,
       duration: quiz.duration,
       isActive: quiz.isActive,
+      passingScore: quiz.passingScore ?? 50,
+      coverImage: quiz.coverImage || null,
+      totalPoints,
       createdAt: quiz.createdAt,
+      updatedAt: quiz.updatedAt,
       questions: safeQuestions
     }
   });
 }
 
-// تحديث
+// 🆕 تحديث (يحدّث نفس الاختبار بنفس الـ ID، لا ينشئ جديد)
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   await connectDB();
   const user = await getCurrentUser();
@@ -62,18 +70,27 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (!isValidId(params.id)) return NextResponse.json({ error: 'معرّف غير صالح' }, { status: 400 });
 
   try {
+    // التأكد من وجود الاختبار قبل التحديث
+    const existingQuiz = await Quiz.findById(params.id);
+    if (!existingQuiz) {
+      return NextResponse.json({ error: 'الاختبار غير موجود' }, { status: 404 });
+    }
+
     const body = await req.json();
-    const { title, stage, grade, duration, isActive, questions } = body;
+    const { title, stage, grade, duration, isActive, passingScore, coverImage, questions } = body;
 
-    const update: any = {};
-    if (title !== undefined) update.title = title;
-    if (stage !== undefined) update.stage = stage;
-    if (grade !== undefined) update.grade = grade;
-    if (duration !== undefined) update.duration = Number(duration);
-    if (isActive !== undefined) update.isActive = !!isActive;
+    // تحديث الحقول الأساسية
+    if (title !== undefined) existingQuiz.title = title;
+    if (stage !== undefined) existingQuiz.stage = stage;
+    if (grade !== undefined) existingQuiz.grade = grade;
+    if (duration !== undefined) existingQuiz.duration = Number(duration);
+    if (isActive !== undefined) existingQuiz.isActive = !!isActive;
+    if (passingScore !== undefined) existingQuiz.passingScore = Number(passingScore);
+    if (coverImage !== undefined) existingQuiz.coverImage = coverImage || null;
 
+    // 🆕 استبدال الأسئلة كاملة (تحديث وليس إنشاء)
     if (Array.isArray(questions)) {
-      update.questions = questions.map((q: any, i: number) => ({
+      existingQuiz.questions = questions.map((q: any, i: number) => ({
         questionText: q.questionText,
         type: q.type || 'mcq',
         optionA: q.optionA || null,
@@ -81,14 +98,29 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         optionC: q.optionC || null,
         optionD: q.optionD || null,
         correctAnswer: String(q.correctAnswer),
+        points: q.points !== undefined ? Number(q.points) : 1,
+        imageUrl: q.imageUrl || null,
         order: i
-      }));
+      })) as any;
     }
 
-    const updated = await Quiz.findByIdAndUpdate(params.id, update, { new: true }).lean();
-    return NextResponse.json({ success: true, quiz: updated });
+    existingQuiz.updatedAt = new Date();
+
+    // 🆕 حفظ على نفس الـ document (نفس الـ _id) - تحديث وليس إنشاء جديد
+    const updated = await existingQuiz.save();
+
+    return NextResponse.json({
+      success: true,
+      message: 'تم تحديث الاختبار بنجاح',
+      quiz: {
+        id: String(updated._id),
+        title: updated.title,
+        updatedAt: updated.updatedAt
+      }
+    });
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message }, { status: 500 });
+    console.error('Update quiz error:', e);
+    return NextResponse.json({ error: e?.message || 'فشل التحديث' }, { status: 500 });
   }
 }
 
