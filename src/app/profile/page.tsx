@@ -79,10 +79,90 @@ export default function ProfilePage() {
         </div>
 
         {/* الإحصائيات */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
           <StatBox icon="📝" label="عدد المحاولات" value={data.results.length} color="royal" />
+          <StatBox icon="📚" label="اختبارات حليتها" value={data.summary?.quizzesTaken ?? 0} color="royal" />
           <StatBox icon="🏆" label="أعلى نسبة" value={`${data.results.length ? Math.max(...data.results.map((r: any) => r.percentage)) : 0}%`} color="gold" />
-          <StatBox icon="📊" label="متوسط النتائج" value={`${data.results.length ? Math.round(data.results.reduce((a: number, r: any) => a + r.percentage, 0) / data.results.length) : 0}%`} color="emerald" />
+          <StatBox icon="⭐" label="نقاطي المحسوبة" value={data.summary?.countedPoints ?? data.totalPoints} color="gold" />
+          <StatBox icon="🎯" label="درجات نهائية" value={data.summary?.perfectCount ?? 0} color="emerald" />
+        </div>
+
+        {/* 🆕 جدول درجات الطالب */}
+        <div id="my-scores-table" className="glass-card rounded-3xl shadow-xl p-6 border-2 border-gold-200 mb-6">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <h2 className="text-xl font-extrabold gold-text flex items-center gap-2">
+              <span>🎓</span>
+              <span>درجاتي</span>
+            </h2>
+            <span className="text-[11px] bg-gold-100 text-gold-700 font-bold px-3 py-1 rounded-full border border-gold-300">
+              تُحتسب أعلى درجة لكل اختبار في نقاطك
+            </span>
+          </div>
+
+          {data.results.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 font-semibold">
+              لا توجد درجات بعد — ابدأ أول اختبار لك 🚀
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-right">
+                <thead>
+                  <tr className="bg-gradient-to-l from-royal-700 to-royal-600 text-white">
+                    <th className="px-3 py-2.5 rounded-r-xl font-extrabold">الاختبار</th>
+                    <th className="px-3 py-2.5 font-extrabold whitespace-nowrap">الدرجة</th>
+                    <th className="px-3 py-2.5 font-extrabold whitespace-nowrap">النقاط</th>
+                    <th className="px-3 py-2.5 font-extrabold whitespace-nowrap">النسبة</th>
+                    <th className="px-3 py-2.5 rounded-l-xl font-extrabold whitespace-nowrap">الحالة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.results.map((r: any) => (
+                    <tr
+                      key={r.id}
+                      className={`border-b border-gray-100 hover:bg-royal-50/60 transition-colors ${r.isCounted ? 'bg-gold-50/50' : ''}`}
+                    >
+                      <td className="px-3 py-3">
+                        <Link href={`/result/${r.id}`} className="font-bold text-royal-700 hover:text-gold-600 transition-colors">
+                          {r.quiz?.title || 'اختبار'}
+                        </Link>
+                        <div className="text-[10px] text-gray-400 mt-0.5">
+                          {new Date(r.createdAt).toLocaleDateString('ar-EG')}
+                          {r.isCounted && <span className="mr-2 text-gold-600 font-bold">★ محسوبة في نقاطك</span>}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 font-bold text-gray-700 whitespace-nowrap">
+                        {r.score} / {r.totalQuestions}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <span className="font-extrabold text-royal-700">⭐ {r.earnedPoints}</span>
+                        <span className="text-gray-400"> / {r.totalPoints}</span>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <span className={`font-extrabold ${r.percentage >= 75 ? 'text-emerald-600' : r.percentage >= 50 ? 'text-royal-700' : 'text-orange-600'}`}>
+                          {r.percentage}%
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        {r.isPerfect ? (
+                          <span className="text-[11px] bg-emerald-100 text-emerald-700 font-extrabold px-2 py-1 rounded-full border border-emerald-300">
+                            🏆 نهائية
+                          </span>
+                        ) : r.passed ? (
+                          <span className="text-[11px] bg-royal-100 text-royal-700 font-extrabold px-2 py-1 rounded-full border border-royal-300">
+                            ✅ ناجح
+                          </span>
+                        ) : (
+                          <span className="text-[11px] bg-orange-100 text-orange-700 font-extrabold px-2 py-1 rounded-full border border-orange-300">
+                            ❌ راسب
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* سجل النتائج */}
@@ -129,10 +209,17 @@ export default function ProfilePage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-extrabold text-gray-800 truncate">{r.quiz?.title || 'اختبار'}</h3>
-                        <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-2">
+                        <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-2 flex-wrap">
                           <span>📅 {new Date(r.createdAt).toLocaleDateString('ar-EG')}</span>
                           <span>•</span>
                           <span>✓ {r.score} من {r.totalQuestions}</span>
+                          <span>•</span>
+                          <span className="font-bold text-royal-700">⭐ {r.earnedPoints} من {r.totalPoints} نقطة</span>
+                          {r.isPerfect && (
+                            <span className="bg-emerald-100 text-emerald-700 font-extrabold px-2 py-0.5 rounded-full border border-emerald-300">
+                              🏆 درجة نهائية
+                            </span>
+                          )}
                         </p>
                       </div>
                       <span className="text-royal-600 text-2xl group-hover:translate-x-[-4px]">←</span>

@@ -10,7 +10,7 @@ export interface IQuizResult extends Document {
   percentage: number;
   passed: boolean;          // 🆕 هل نجح؟
   passingScore: number;     // 🆕 نسبة النجاح المطلوبة
-  answers: any[];
+  answers: any;
   createdAt: Date;
 }
 
@@ -24,7 +24,7 @@ const QuizResultSchema = new Schema<IQuizResult>({
   percentage: { type: Number, required: true },
   passed: { type: Boolean, default: false },      // 🆕
   passingScore: { type: Number, default: 50 },    // 🆕
-  answers: { type: Array, default: [] },
+  answers: { type: Schema.Types.Mixed, default: [] },
   createdAt: { type: Date, default: Date.now }
 });
 

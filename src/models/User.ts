@@ -20,7 +20,7 @@ const UserSchema = new Schema<IUser>({
   createdAt: { type: Date, default: Date.now }
 });
 
-UserSchema.index({ name: 1 });
+// ملاحظة: فهرس name موجود تلقائيًا من خلال unique: true — لا نكرره لتجنب تحذير Mongoose
 UserSchema.index({ totalPoints: -1 });
 
 export const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);

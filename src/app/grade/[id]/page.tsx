@@ -1,52 +1,68 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import HomeButton from '@/components/HomeButton';
-import { PRIMARY_GRADES } from '@/lib/constants';
+import { PRIMARY_GRADES, TERMS, getTerm, normalizeTerm } from '@/lib/constants';
 
+/**
+ * 🆕 صفحة الصف — مربوطة بالفصل الدراسي
+ * /grade/grade-1?term=term-1  →  اختبارات وتلخيصات الترم الأول فقط
+ * /grade/grade-1?term=term-2  →  اختبارات وتلخيصات الترم الثاني فقط
+ * لا يوجد أي خلط بين محتوى الترمين إطلاقًا.
+ */
 export default function GradePage() {
   const params = useParams() as { id: string };
+  const searchParams = useSearchParams();
   const id = params.id;
+  const termId = normalizeTerm(searchParams.get('term'));
+  const term = getTerm(termId);
+
   const [tab, setTab] = useState<'quizzes' | 'summaries'>('quizzes');
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [summaries, setSummaries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const grade = PRIMARY_GRADES.find((g) => g.id === id);
+  const isFirst = term.id === 'term-1';
 
   useEffect(() => {
+    setLoading(true);
     Promise.all([
-      fetch(`/api/quizzes?grade=${id}`).then((r) => r.json()),
-      fetch(`/api/summaries?grade=${id}`).then((r) => r.json())
+      fetch(`/api/quizzes?grade=${id}&term=${termId}`).then((r) => r.json()),
+      fetch(`/api/summaries?grade=${id}&term=${termId}`).then((r) => r.json())
     ]).then(([q, s]) => {
       setQuizzes(q.quizzes || []);
       setSummaries(s.summaries || []);
       setLoading(false);
     });
-  }, [id]);
+  }, [id, termId]);
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       <HomeButton />
 
-      <main className="flex-1 max-w-6xl mx-auto px-4 py-8 w-full">
+      <main id="grade-main" className="flex-1 max-w-6xl mx-auto px-4 py-8 w-full">
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
+        <nav className="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-4">
           <Link href="/" className="hover:text-royal-700 font-bold flex items-center gap-1">
             <span>🏠</span> الرئيسية
           </Link>
           <span>›</span>
           <Link href="/stage/primary" className="hover:text-emerald-700 font-bold">المرحلة الابتدائية</Link>
           <span>›</span>
+          <Link href={`/stage/primary/${term.id}`} className={`hover:underline font-bold ${term.text}`}>
+            {term.short}
+          </Link>
+          <span>›</span>
           <span className="text-emerald-700 font-bold truncate">{grade?.name || id}</span>
-        </div>
+        </nav>
 
         {/* العنوان الكبير */}
-        <div className="relative bg-gradient-to-l from-emerald-600 via-teal-600 to-cyan-600 rounded-3xl p-6 sm:p-8 shadow-2xl mb-6 text-white overflow-hidden animate-fade-in-up">
+        <section className={`relative bg-gradient-to-l ${term.gradient} rounded-3xl p-6 sm:p-8 shadow-2xl mb-6 text-white overflow-hidden animate-fade-in-up`}>
           <div className="absolute -top-10 -left-10 w-48 h-48 bg-gold-400/30 rounded-full blur-2xl"></div>
           <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-white/15 rounded-full blur-2xl"></div>
           <div className="absolute top-0 right-0 w-full h-full opacity-10 dot-pattern"></div>
@@ -67,8 +83,14 @@ export default function GradePage() {
             <div className="text-center sm:text-right flex-1">
               <div className="text-xs opacity-80 mb-1 font-bold">المرحلة الابتدائية</div>
               <h1 className="text-2xl sm:text-3xl font-extrabold drop-shadow-lg">{grade?.name || 'الصف'}</h1>
+
+              {/* 🆕 شارة الفصل الدراسي */}
+              <div className="mt-2 inline-flex items-center gap-2 px-4 py-1.5 bg-white/25 backdrop-blur-sm rounded-full text-sm font-extrabold border-2 border-white/50">
+                {term.emoji} {term.name}
+              </div>
+
               <p className="opacity-90 mt-2 text-sm sm:text-base font-semibold">
-                ✨ اكتشف الاختبارات والتلخيصات المخصصة لصفك
+                ✨ اختبارات وتلخيصات {term.name} فقط
               </p>
               <div className="mt-3 flex flex-wrap gap-2 justify-center sm:justify-start">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-full text-xs font-bold border border-white/40">
@@ -80,7 +102,27 @@ export default function GradePage() {
               </div>
             </div>
           </div>
-        </div>
+        </section>
+
+        {/* 🆕 مبدّل الفصل الدراسي */}
+        <section id="grade-term-switcher" className="mb-6 bg-white p-3 rounded-2xl shadow-md border-2 border-gray-100">
+          <div className="text-xs font-extrabold text-gray-500 mb-2 px-1">🔄 تغيير الفصل الدراسي:</div>
+          <div className="flex flex-wrap gap-2">
+            {TERMS.map((t) => (
+              <Link
+                key={t.id}
+                href={`/grade/${id}?term=${t.id}`}
+                className={`flex-1 min-w-[140px] text-center px-4 py-2.5 rounded-xl font-extrabold text-sm transition-all ${
+                  t.id === term.id
+                    ? `bg-gradient-to-l ${t.gradient} text-white shadow-lg`
+                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border-2 border-gray-200'
+                }`}
+              >
+                {t.emoji} {t.name}
+              </Link>
+            ))}
+          </div>
+        </section>
 
         {/* التبويبات */}
         <div className="flex gap-2 mb-6 bg-white p-2 rounded-2xl shadow-md border-2 border-royal-100">
@@ -112,9 +154,9 @@ export default function GradePage() {
             <div className="mt-4 text-gray-500 font-bold">جاري التحميل...</div>
           </div>
         ) : tab === 'quizzes' ? (
-          <QuizList quizzes={quizzes} />
+          <QuizList quizzes={quizzes} term={term} />
         ) : (
-          <SummaryList summaries={summaries} />
+          <SummaryList summaries={summaries} term={term} />
         )}
       </main>
 
@@ -123,12 +165,12 @@ export default function GradePage() {
   );
 }
 
-function QuizList({ quizzes }: { quizzes: any[] }) {
+function QuizList({ quizzes, term }: { quizzes: any[]; term: any }) {
   if (quizzes.length === 0) {
     return (
       <div className="text-center py-16 glass-card rounded-3xl border-2 border-dashed border-royal-200">
         <div className="text-7xl mb-4 animate-bounce-slow">📝</div>
-        <p className="text-gray-700 font-extrabold text-lg">لا توجد اختبارات بعد</p>
+        <p className="text-gray-700 font-extrabold text-lg">لا توجد اختبارات في {term.name} بعد</p>
         <p className="text-gray-500 mt-2">سيتم إضافة اختبارات شيقة قريبًا — تابعنا!</p>
       </div>
     );
@@ -160,6 +202,9 @@ function QuizList({ quizzes }: { quizzes: any[] }) {
             <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gold-50 text-gold-700 text-xs rounded-full font-bold border border-gold-200">
               ❓ {q.questionCount || 0} سؤال
             </span>
+            <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full font-bold border ${term.bg} ${term.text} ${term.border}`}>
+              {term.emoji} {term.short}
+            </span>
           </div>
           <div className="mt-4 pt-4 border-t border-dashed border-gray-200 flex items-center justify-between">
             <span className="text-sm text-gray-500 font-semibold">اختبر معلوماتك</span>
@@ -173,12 +218,12 @@ function QuizList({ quizzes }: { quizzes: any[] }) {
   );
 }
 
-function SummaryList({ summaries }: { summaries: any[] }) {
+function SummaryList({ summaries, term }: { summaries: any[]; term: any }) {
   if (summaries.length === 0) {
     return (
       <div className="text-center py-16 glass-card rounded-3xl border-2 border-dashed border-gold-200">
         <div className="text-7xl mb-4 animate-bounce-slow">📚</div>
-        <p className="text-gray-700 font-extrabold text-lg">لا توجد تلخيصات بعد</p>
+        <p className="text-gray-700 font-extrabold text-lg">لا توجد تلخيصات في {term.name} بعد</p>
         <p className="text-gray-500 mt-2">سيتم إضافة تلخيصات شاملة قريبًا</p>
       </div>
     );
@@ -213,6 +258,7 @@ function SummaryList({ summaries }: { summaries: any[] }) {
           </div>
           <div className="p-3 text-center">
             <h3 className="font-extrabold text-gray-800 text-sm truncate group-hover:text-royal-700 transition-colors">{s.title}</h3>
+            <p className={`text-[10px] font-bold mt-1 ${term.text}`}>{term.emoji} {term.short}</p>
           </div>
         </a>
       ))}

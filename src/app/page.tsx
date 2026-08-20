@@ -12,7 +12,7 @@ export default function HomePage() {
 
   useEffect(() => {
     fetch('/api/auth/me').then((r) => r.json()).then((d) => setUser(d.user));
-    fetch('/api/leaderboard').then((r) => r.json()).then((d) => setLeaders((d.leaderboard || []).slice(0, 3)));
+    fetch('/api/leaderboard?limit=10').then((r) => r.json()).then((d) => setLeaders(d.leaderboard || []));
     // إحصائيات مبسطة (اختيارياً يمكن قراءتها من API لاحقًا)
     fetch('/api/quizzes').then((r) => r.json()).then((d) => {
       setStats((s) => ({ ...s, quizzes: (d.quizzes || []).length }));
@@ -81,7 +81,7 @@ export default function HomePage() {
         <div className="relative max-w-7xl mx-auto px-4 py-10 sm:py-16">
           {/* أزرار التسجيل والدخول للضيوف */}
           {!user && (
-            <div className="flex flex-wrap justify-center gap-3 mb-8 animate-fade-in-up">
+            <div className="flex flex-wrap justify-center gap-3 mb-4 animate-fade-in-up">
               <Link
                 href="/register"
                 className="px-7 py-3 bg-gradient-to-l from-royal-700 to-royal-600 text-white rounded-2xl font-extrabold shadow-lg shadow-royal-700/30 hover:shadow-2xl hover:shadow-royal-700/50 hover:scale-105 transition-all btn-shine border-2 border-white"
@@ -213,7 +213,6 @@ export default function HomePage() {
               <h2 className="text-2xl sm:text-3xl font-extrabold gold-text">قائمة الأوائل</h2>
               <span className="text-2xl animate-bounce-slow" style={{ animationDelay: '0.5s' }}>👑</span>
             </div>
-            <p className="mt-3 text-gray-600 font-semibold">أعلى ثلاث طلاب على المنصة - تحدَ نفسك وانضم إليهم!</p>
           </div>
 
           {leaders.length === 0 ? (
@@ -250,7 +249,7 @@ export default function HomePage() {
               href="/leaderboard"
               className="inline-flex items-center gap-2 px-6 py-3 bg-white border-2 border-gold-400 text-royal-700 rounded-2xl font-extrabold shadow-lg hover:bg-gradient-to-l hover:from-gold-500 hover:to-gold-600 hover:text-white hover:scale-105 transition-all"
             >
-              🏆 عرض كل الأوائل <span>←</span>
+              🏆 عرض أفضل 10 طلاب <span>←</span>
             </Link>
           </div>
         </div>
@@ -296,6 +295,10 @@ function LeaderCard({ rank, name, points, medal, color, crown = false }: any) {
   return (
     <div className={`relative bg-gradient-to-br ${color} rounded-3xl shadow-2xl p-6 text-center hover-lift transition-all border-4 border-white/60`}>
       {crown && <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-5xl animate-float">👑</div>}
+      {/* 🆕 رقم الترتيب واضح */}
+      <div className="absolute top-3 right-3 w-11 h-11 rounded-2xl bg-white text-royal-700 flex items-center justify-center text-xl font-extrabold shadow-lg border-2 border-gold-400">
+        {rank}
+      </div>
       <div className="text-7xl mb-2 drop-shadow-lg">{medal}</div>
       <div className="bg-white/95 backdrop-blur-sm rounded-2xl px-3 py-3 mt-2 shadow-inner border border-white">
         <div className="text-base sm:text-lg font-extrabold royal-text truncate">{name}</div>

@@ -76,6 +76,11 @@ export default function QuizPage() {
       }
       return;
     }
+    // 🆕 لو حصل على الدرجة النهائية قبل كذا — ممنوع الإعادة
+    if (quiz?.isPerfect) {
+      alert('لقد حصلت بالفعل على الدرجة النهائية في هذا الاختبار 🎉 لا يمكن إعادته مرة أخرى.');
+      return;
+    }
     setStarted(true);
     startedRef.current = true;
     setTimeLeft((quiz?.duration || 10) * 60);
@@ -108,6 +113,11 @@ export default function QuizPage() {
         alert(errMsg);
         submittingRef.current = false;
         setSubmitting(false);
+        // 🆕 لو كان حاصل على الدرجة النهائية بالفعل — نوجهه لنتيجته
+        if (data?.alreadyPerfect) {
+          if (data?.resultId) router.push(`/result/${data.resultId}`);
+          else router.push('/profile');
+        }
         return;
       }
 
@@ -202,6 +212,43 @@ export default function QuizPage() {
               <InfoBox icon="🎓" label="الصف" value={quiz.grade || ''} />
             </div>
 
+            {/* 🆕 حالة محاولاتك السابقة */}
+            {user && (quiz.myAttempts ?? 0) > 0 && (
+              <div
+                id="my-attempts-status"
+                className={`mt-6 rounded-2xl p-4 text-right border-2 ${
+                  quiz.isPerfect
+                    ? 'bg-gradient-to-l from-emerald-50 to-teal-50 border-emerald-300'
+                    : 'bg-gradient-to-l from-royal-50 to-blue-50 border-royal-300'
+                }`}
+              >
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-2xl">{quiz.isPerfect ? '🎉' : '📊'}</span>
+                  <span className={`font-extrabold ${quiz.isPerfect ? 'text-emerald-800' : 'text-royal-800'}`}>
+                    {quiz.isPerfect
+                      ? 'حصلت على الدرجة النهائية في هذا الاختبار!'
+                      : `أعلى نتيجة لك: ${quiz.myBestPercentage}%`}
+                  </span>
+                  <span className="text-xs bg-white px-2 py-1 rounded-full border border-gray-200 font-bold text-gray-600">
+                    عدد المحاولات: {quiz.myAttempts}
+                  </span>
+                </div>
+                <p className={`mt-2 text-sm font-semibold ${quiz.isPerfect ? 'text-emerald-700' : 'text-royal-700'}`}>
+                  {quiz.isPerfect
+                    ? 'لا يمكن إعادة الاختبار بعد الحصول على الدرجة الكاملة ✅'
+                    : 'يمكنك إعادة المحاولة بحرية، وسيتم احتساب أعلى درجة فقط في نقاطك.'}
+                </p>
+                {quiz.myBestResultId && (
+                  <Link
+                    href={`/result/${quiz.myBestResultId}`}
+                    className="inline-block mt-3 text-xs font-extrabold text-royal-700 bg-white px-3 py-1.5 rounded-xl border-2 border-royal-200 hover:border-gold-400 transition-colors"
+                  >
+                    📄 عرض أفضل نتيجة لك ←
+                  </Link>
+                )}
+              </div>
+            )}
+
             <div className="mt-6 bg-gradient-to-l from-gold-50 to-amber-50 border-2 border-gold-300 rounded-2xl p-4 text-right text-sm">
               <p className="font-extrabold text-gold-800 mb-2 flex items-center gap-2">
                 <span className="text-xl">⚠️</span>
@@ -211,16 +258,33 @@ export default function QuizPage() {
                 <li>عند بدء الاختبار لن تستطيع الرجوع أو الخروج إلا بعد التسليم.</li>
                 <li>عند انتهاء الوقت يتم تسليم الاختبار تلقائيًا.</li>
                 <li>كل الأسئلة تظهر في صفحة واحدة بدون زر "التالي".</li>
-                <li>يمكنك إعادة الاختبار، وسيتم احتساب أعلى نتيجة فقط.</li>
+                <li>لو نقصت درجاتك يمكنك الإعادة أكثر من مرة بحرية، وتُحتسب أعلى درجة فقط في نقاطك.</li>
+                <li className="text-emerald-800">لو حصلت على الدرجة النهائية (100%) لن تستطيع إعادة الاختبار مرة أخرى.</li>
               </ul>
             </div>
 
-            <button
-              onClick={startQuiz}
-              className="mt-6 w-full py-4 bg-gradient-to-l from-royal-700 to-royal-600 hover:from-gold-500 hover:to-gold-600 text-white rounded-2xl font-extrabold text-lg shadow-xl shadow-royal-700/30 hover:shadow-2xl hover:shadow-gold-500/40 btn-shine transition-all hover:scale-[1.02] pulse-glow"
-            >
-              🚀 ابدأ التحدي الآن
-            </button>
+            {quiz.isPerfect ? (
+              <div className="mt-6 space-y-3">
+                <div className="w-full py-4 bg-gradient-to-l from-emerald-600 to-teal-600 text-white rounded-2xl font-extrabold text-lg shadow-xl text-center">
+                  🏆 أنت حاصل على الدرجة النهائية — الاختبار مكتمل
+                </div>
+                <div className="flex flex-wrap gap-3 justify-center">
+                  <Link href="/profile" className="px-5 py-3 bg-white border-2 border-royal-300 text-royal-700 rounded-2xl font-extrabold hover:border-gold-400 transition-colors">
+                    👤 صفحتي الشخصية
+                  </Link>
+                  <Link href="/" className="px-5 py-3 bg-white border-2 border-gold-300 text-gold-700 rounded-2xl font-extrabold hover:border-royal-400 transition-colors">
+                    🏠 الرئيسية
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={startQuiz}
+                className="mt-6 w-full py-4 bg-gradient-to-l from-royal-700 to-royal-600 hover:from-gold-500 hover:to-gold-600 text-white rounded-2xl font-extrabold text-lg shadow-xl shadow-royal-700/30 hover:shadow-2xl hover:shadow-gold-500/40 btn-shine transition-all hover:scale-[1.02] pulse-glow"
+              >
+                {(quiz.myAttempts ?? 0) > 0 ? '🔄 إعادة المحاولة الآن' : '🚀 ابدأ التحدي الآن'}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -423,14 +487,29 @@ function ResultsView({ result, quiz, onRetake }: any) {
           </div>
         </div>
 
+        {/* 🆕 تنبيه عند الحصول على الدرجة النهائية */}
+        {percentage >= 100 && (
+          <div id="perfect-score-notice" className="mb-6 bg-gradient-to-l from-emerald-50 to-teal-50 border-2 border-emerald-300 rounded-3xl p-5 text-center shadow-lg">
+            <div className="text-4xl mb-2">🏆</div>
+            <div className="text-lg font-extrabold text-emerald-800">
+              مبروك! حصلت على الدرجة النهائية
+            </div>
+            <p className="text-sm text-emerald-700 font-semibold mt-1">
+              تم تسجيل كل نقاط هذا الاختبار في رصيدك، ولا يمكن إعادته مرة أخرى.
+            </p>
+          </div>
+        )}
+
         {/* الأزرار */}
         <div className="flex flex-wrap gap-3 mb-6">
-          <button
-            onClick={onRetake}
-            className="flex-1 min-w-[140px] py-3.5 bg-gradient-to-l from-royal-700 to-royal-600 hover:from-gold-500 hover:to-gold-600 text-white rounded-2xl font-extrabold shadow-lg hover:shadow-2xl btn-shine transition-all"
-          >
-            🔄 إعادة الاختبار
-          </button>
+          {percentage < 100 && (
+            <button
+              onClick={onRetake}
+              className="flex-1 min-w-[140px] py-3.5 bg-gradient-to-l from-royal-700 to-royal-600 hover:from-gold-500 hover:to-gold-600 text-white rounded-2xl font-extrabold shadow-lg hover:shadow-2xl btn-shine transition-all"
+            >
+              🔄 إعادة الاختبار
+            </button>
+          )}
           <Link
             href="/profile"
             className="flex-1 min-w-[140px] text-center py-3.5 bg-gradient-to-l from-gold-500 to-gold-600 text-white rounded-2xl font-extrabold shadow-lg hover:shadow-2xl btn-shine transition-all"

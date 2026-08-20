@@ -18,6 +18,7 @@ export interface IQuiz extends Document {
   title: string;
   stage: string;
   grade: string;
+  term: string; // 🆕 الفصل الدراسي: term-1 | term-2
   duration: number;
   isActive: boolean;
   questions: IQuestion[];
@@ -44,6 +45,8 @@ const QuizSchema = new Schema<IQuiz>({
   title: { type: String, required: true, trim: true },
   stage: { type: String, required: true },
   grade: { type: String, required: true },
+  // 🆕 الفصل الدراسي — الافتراضي term-2 للحفاظ على التوافق مع البيانات القديمة
+  term: { type: String, enum: ['term-1', 'term-2'], default: 'term-2', index: true },
   duration: { type: Number, required: true },
   isActive: { type: Boolean, default: true },
   questions: [QuestionSchema],
@@ -53,7 +56,7 @@ const QuizSchema = new Schema<IQuiz>({
   updatedAt: { type: Date, default: Date.now }
 }, { timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' } });
 
-QuizSchema.index({ grade: 1, stage: 1, isActive: 1 });
+QuizSchema.index({ grade: 1, stage: 1, term: 1, isActive: 1 });
 QuizSchema.index({ title: 'text' });
 
 export const Quiz: Model<IQuiz> = mongoose.models.Quiz || mongoose.model<IQuiz>('Quiz', QuizSchema);

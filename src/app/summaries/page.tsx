@@ -4,21 +4,27 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import HomeButton from '@/components/HomeButton';
-import { PRIMARY_GRADES } from '@/lib/constants';
+import { PRIMARY_GRADES, TERMS, DEFAULT_TERM, getTerm } from '@/lib/constants';
 
 export default function SummariesPage() {
   const [summaries, setSummaries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterGrade, setFilterGrade] = useState('');
+  // 🆕 اختيار الفصل الدراسي (افتراضيًا الترم الثاني)
+  const [filterTerm, setFilterTerm] = useState<string>(DEFAULT_TERM);
+  const activeTerm = getTerm(filterTerm);
 
   useEffect(() => {
     setLoading(true);
-    const url = filterGrade ? `/api/summaries?grade=${filterGrade}` : '/api/summaries';
+    const qs = new URLSearchParams();
+    if (filterGrade) qs.set('grade', filterGrade);
+    if (filterTerm) qs.set('term', filterTerm);
+    const url = qs.toString() ? `/api/summaries?${qs.toString()}` : '/api/summaries';
     fetch(url).then((r) => r.json()).then((d) => {
       setSummaries(d.summaries || []);
       setLoading(false);
     });
-  }, [filterGrade]);
+  }, [filterGrade, filterTerm]);
 
   // إزالة التكرار
   const unique = (() => {
@@ -60,13 +66,41 @@ export default function SummariesPage() {
             <p className="opacity-95 mt-3 text-base sm:text-lg font-semibold max-w-2xl mx-auto">
               ✨ مكتبة شاملة من التلخيصات والمراجعات لجميع الصفوف الدراسية
             </p>
-            <div className="mt-4 inline-flex items-center gap-2 px-5 py-2 bg-white/20 backdrop-blur-sm rounded-full border-2 border-white/40 font-bold">
-              📖 {unique.length} تلخيص متاح
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <span className="inline-flex items-center gap-2 px-5 py-2 bg-white/20 backdrop-blur-sm rounded-full border-2 border-white/40 font-bold">
+                📖 {unique.length} تلخيص متاح
+              </span>
+              {/* 🆕 شارة الفصل الدراسي الحالي */}
+              <span className="inline-flex items-center gap-2 px-5 py-2 bg-white/25 backdrop-blur-sm rounded-full border-2 border-white/50 font-extrabold">
+                {activeTerm.emoji} {activeTerm.name}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* فلترة */}
+        {/* 🆕 اختيار الفصل الدراسي */}
+        <section id="summaries-term-select" className="mb-5 glass-card rounded-3xl shadow-md p-5 border-2 border-royal-200">
+          <label className="block text-sm font-extrabold text-royal-700 mb-3 flex items-center gap-2">
+            <span>📅</span> اختر الفصل الدراسي:
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {TERMS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setFilterTerm(t.id)}
+                className={`px-5 py-3.5 rounded-2xl font-extrabold transition-all border-2 ${
+                  filterTerm === t.id
+                    ? `bg-gradient-to-l ${t.gradient} text-white border-white shadow-lg scale-[1.02]`
+                    : 'bg-white border-gray-200 text-gray-600 hover:border-royal-300'
+                }`}
+              >
+                <span className="text-xl ml-1">{t.emoji}</span> {t.name}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* فلترة حسب الصف */}
         <div className="mb-6 glass-card rounded-3xl shadow-md p-5 border-2 border-gold-200">
           <label className="block text-sm font-extrabold text-royal-700 mb-3 flex items-center gap-2">
             <span>🎯</span> فلترة حسب الصف الدراسي:
@@ -106,7 +140,7 @@ export default function SummariesPage() {
         ) : unique.length === 0 ? (
           <div className="text-center py-16 glass-card rounded-3xl border-2 border-dashed border-gold-200">
             <div className="text-7xl mb-4 animate-bounce-slow">📚</div>
-            <p className="text-gray-700 font-extrabold text-lg">لا توجد تلخيصات بعد</p>
+            <p className="text-gray-700 font-extrabold text-lg">لا توجد تلخيصات في {activeTerm.name} بعد</p>
             <p className="text-gray-500 mt-2">سيتم إضافة تلخيصات قريبًا — تابعنا!</p>
           </div>
         ) : (
@@ -144,6 +178,10 @@ export default function SummariesPage() {
                       {PRIMARY_GRADES.find((g) => g.id === s.grade)?.short || s.grade}
                     </p>
                   )}
+                  {/* 🆕 اسم الفصل الدراسي */}
+                  <p className={`text-[10px] font-bold mt-0.5 ${getTerm(s.term).text}`}>
+                    {getTerm(s.term).emoji} {getTerm(s.term).short}
+                  </p>
                 </div>
               </a>
             ))}

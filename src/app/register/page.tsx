@@ -157,7 +157,7 @@ export default function RegisterPage() {
                   جاري الإنشاء...
                 </span>
               ) : (
-                <span>✨ إنشاء حسابي الآن</span>
+                <span>✨ إنشاء حساب</span>
               )}
             </button>
           </form>

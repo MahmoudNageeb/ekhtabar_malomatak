@@ -13,6 +13,9 @@ export default function Header({ showHome = true }: { showHome?: boolean }) {
   const [showResults, setShowResults] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [searching, setSearching] = useState(false);
+  // 🆕 أفضل 10 طلاب داخل القائمة المنسدلة (null = لم يتم التحميل بعد)
+  const [leaders, setLeaders] = useState<any[] | null>(null);
+  const [leadersOpen, setLeadersOpen] = useState(false);
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -20,6 +23,15 @@ export default function Header({ showHome = true }: { showHome?: boolean }) {
   useEffect(() => {
     fetch('/api/auth/me').then((r) => r.json()).then((d) => setUser(d.user));
   }, []);
+
+  // 🆕 تحميل أفضل 10 طلاب عند فتح القائمة المنسدلة
+  useEffect(() => {
+    if (!menuOpen || leaders !== null) return;
+    fetch('/api/leaderboard?limit=10')
+      .then((r) => r.json())
+      .then((d) => setLeaders(d.leaderboard || []))
+      .catch(() => setLeaders([]));
+  }, [menuOpen, leaders]);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -265,10 +277,12 @@ export default function Header({ showHome = true }: { showHome?: boolean }) {
                     <span className="text-xl">⭐</span>
                     <span className="font-bold text-gray-700">المفضلة</span>
                   </Link>
-                  <Link href="/leaderboard" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-5 py-3 hover:bg-royal-50 transition-colors border-t border-gray-100">
-                    <span className="text-xl">🏆</span>
-                    <span className="font-bold text-gray-700">قائمة الأوائل</span>
-                  </Link>
+                  <LeadersSection
+                    leaders={leaders}
+                    open={leadersOpen}
+                    toggle={() => setLeadersOpen((v) => !v)}
+                    closeMenu={() => setMenuOpen(false)}
+                  />
                   {user.isAdmin && (
                     <Link href="/admin" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-5 py-3 hover:bg-gold-50 transition-colors border-t border-gray-100">
                       <span className="text-xl">⚙️</span>
@@ -294,10 +308,12 @@ export default function Header({ showHome = true }: { showHome?: boolean }) {
                     <span className="text-xl">📝</span>
                     <span className="font-bold text-gray-700">إنشاء حساب جديد</span>
                   </Link>
-                  <Link href="/leaderboard" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-5 py-3 hover:bg-royal-50 transition-colors border-t border-gray-100">
-                    <span className="text-xl">🏆</span>
-                    <span className="font-bold text-gray-700">الأوائل</span>
-                  </Link>
+                  <LeadersSection
+                    leaders={leaders}
+                    open={leadersOpen}
+                    toggle={() => setLeadersOpen((v) => !v)}
+                    closeMenu={() => setMenuOpen(false)}
+                  />
                 </>
               )}
             </div>
@@ -305,5 +321,101 @@ export default function Header({ showHome = true }: { showHome?: boolean }) {
         </div>
       </div>
     </header>
+  );
+}
+
+/**
+ * 🆕 قسم الأوائل داخل القائمة المنسدلة — يعرض أول عشر طلاب
+ * مع رقم الترتيب والنقاط لكل طالب.
+ */
+function LeadersSection({
+  leaders,
+  open,
+  toggle,
+  closeMenu
+}: {
+  leaders: any[] | null;
+  open: boolean;
+  toggle: () => void;
+  closeMenu: () => void;
+}) {
+  const medals: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
+  const rankColor = (rank: number) =>
+    rank === 1
+      ? 'from-gold-500 to-amber-600'
+      : rank === 2
+      ? 'from-gray-400 to-gray-600'
+      : rank === 3
+      ? 'from-orange-500 to-orange-700'
+      : 'from-royal-600 to-royal-700';
+
+  return (
+    <div id="menu-leaders-section" className="border-t border-gray-100">
+      <button
+        onClick={toggle}
+        aria-expanded={open}
+        className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gold-50 transition-colors text-right"
+      >
+        <span className="text-xl">🏆</span>
+        <span className="font-bold text-gray-700 flex-1">الأوائل</span>
+        <span className="text-[10px] bg-gold-100 text-gold-700 font-extrabold px-2 py-0.5 rounded-full border border-gold-300">
+          أفضل 10
+        </span>
+        <span className={`text-xs text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}>▼</span>
+      </button>
+
+      {open && (
+        <div className="bg-gradient-to-b from-gold-50/70 to-white max-h-72 overflow-y-auto border-t border-gold-200">
+          {leaders === null ? (
+            <div className="px-5 py-5 text-center text-sm text-gray-500 font-semibold">
+              ⏳ جاري التحميل...
+            </div>
+          ) : leaders.length === 0 ? (
+            <div className="px-5 py-6 text-center">
+              <div className="text-3xl mb-1">🎯</div>
+              <div className="text-sm font-extrabold text-royal-700">لا توجد نتائج بعد</div>
+              <div className="text-[11px] text-gray-500 mt-0.5">كن أنت الأول!</div>
+            </div>
+          ) : (
+            <ol>
+              {leaders.map((l: any, i: number) => {
+                const rank = l.rank ?? i + 1;
+                return (
+                  <li key={l.id}>
+                    <Link
+                      href="/leaderboard"
+                      onClick={closeMenu}
+                      className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-white border-b border-gold-100/70 last:border-0 transition-colors"
+                    >
+                      {/* رقم الترتيب */}
+                      <span
+                        className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center text-xs font-extrabold text-white shadow-sm bg-gradient-to-br ${rankColor(rank)}`}
+                      >
+                        {rank}
+                      </span>
+                      {medals[rank] && <span className="text-lg flex-shrink-0">{medals[rank]}</span>}
+                      <span className="flex-1 min-w-0 text-sm font-bold text-gray-800 truncate">
+                        {l.name}
+                      </span>
+                      {/* النقاط */}
+                      <span className="flex-shrink-0 text-[11px] font-extrabold text-royal-700 bg-white px-2 py-1 rounded-full border border-royal-200 shadow-sm">
+                        ⭐ {l.totalPoints}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+          <Link
+            href="/leaderboard"
+            onClick={closeMenu}
+            className="block py-2.5 text-center text-xs font-extrabold text-royal-700 hover:text-gold-600 bg-white border-t border-gold-200 transition-colors"
+          >
+            عرض صفحة الأوائل الكاملة ←
+          </Link>
+        </div>
+      )}
+    </div>
   );
 }

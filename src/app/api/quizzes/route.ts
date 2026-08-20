@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { connectDB } from '@/lib/mongodb';
 import { Quiz } from '@/models/Quiz';
+import { normalizeTerm } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const grade = searchParams.get('grade');
   const stage = searchParams.get('stage');
+  const term = searchParams.get('term'); // 🆕 فلترة حسب الفصل الدراسي
   const search = searchParams.get('search');
   const adminAll = searchParams.get('all') === '1';
 
@@ -20,10 +22,15 @@ export async function GET(req: NextRequest) {
   if (!adminAll || !user?.isAdmin) where.isActive = true;
   if (grade) where.grade = grade;
   if (stage) where.stage = stage;
+  // 🆕 فلترة الترم — البيانات القديمة بدون term تعتبر term-2
+  if (term) {
+    const t = normalizeTerm(term);
+    where.term = t === 'term-2' ? { $in: ['term-2', null] } : t;
+  }
   if (search) where.title = { $regex: search, $options: 'i' };
 
   const quizzes = await Quiz.find(where)
-    .select('title stage grade duration isActive passingScore coverImage createdAt updatedAt questions')
+    .select('title stage grade term duration isActive passingScore coverImage createdAt updatedAt questions')
     .sort({ createdAt: -1 })
     .lean();
 
@@ -32,6 +39,7 @@ export async function GET(req: NextRequest) {
     title: q.title,
     stage: q.stage,
     grade: q.grade,
+    term: q.term || 'term-2', // 🆕
     duration: q.duration,
     isActive: q.isActive,
     passingScore: q.passingScore ?? 50,
@@ -52,7 +60,7 @@ export async function POST(req: NextRequest) {
   if (!user?.isAdmin) return NextResponse.json({ error: 'غير مصرح' }, { status: 403 });
 
   try {
-    const { title, stage, grade, duration, passingScore, coverImage, questions } = await req.json();
+    const { title, stage, grade, term, duration, passingScore, coverImage, questions } = await req.json();
 
     if (!title || !stage || !grade || !duration || !Array.isArray(questions) || questions.length === 0) {
       return NextResponse.json({ error: 'كل البيانات مطلوبة وأضف على الأقل سؤالاً واحدًا' }, { status: 400 });
@@ -62,6 +70,7 @@ export async function POST(req: NextRequest) {
       title,
       stage,
       grade,
+      term: normalizeTerm(term), // 🆕 الفصل الدراسي
       duration: Number(duration),
       passingScore: passingScore !== undefined ? Number(passingScore) : 50,
       coverImage: coverImage || null,

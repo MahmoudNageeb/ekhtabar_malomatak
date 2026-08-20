@@ -10,7 +10,7 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/leaderboard').then((r) => r.json()).then((d) => {
+    fetch('/api/leaderboard?limit=10').then((r) => r.json()).then((d) => {
       setList(d.leaderboard || []);
       setLoading(false);
     });
@@ -81,6 +81,10 @@ export default function LeaderboardPage() {
                     <div key={u.id} className={`${order} animate-fade-in-up`} style={{ animationDelay: `${idx * 0.15}s` }}>
                       <div className={`relative bg-gradient-to-br ${top3Gradients[idx]} rounded-3xl shadow-2xl p-5 text-center border-4 border-white/70 ${heights[idx]} flex flex-col justify-end`}>
                         {idx === 0 && <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-5xl animate-float">👑</div>}
+                        {/* 🆕 رقم الترتيب */}
+                        <div className="absolute top-3 right-3 w-10 h-10 rounded-2xl bg-white text-royal-700 flex items-center justify-center text-lg font-extrabold shadow-lg border-2 border-gold-400">
+                          {u.rank ?? idx + 1}
+                        </div>
                         <div className="text-6xl mb-2 drop-shadow-lg">{medals[idx]}</div>
                         <div className="bg-white/95 backdrop-blur-sm rounded-2xl px-3 py-3 border border-white">
                           <div className="font-extrabold text-base royal-text truncate">{u.name}</div>
@@ -120,7 +124,7 @@ export default function LeaderboardPage() {
                           : 'bg-royal-50 text-royal-700 border-2 border-royal-200'
                       }`}
                     >
-                      {isTop3 ? medals[idx] : `#${idx + 1}`}
+                      {isTop3 ? medals[idx] : `#${u.rank ?? idx + 1}`}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-extrabold text-base sm:text-lg text-gray-800 truncate">{u.name}</div>

@@ -4,11 +4,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import HomeButton from '@/components/HomeButton';
-import { PRIMARY_GRADES } from '@/lib/constants';
+import { PRIMARY_GRADES, TERMS, getTerm } from '@/lib/constants';
 
 export default function AdminQuizzesPage() {
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  // 🆕 فلترة حسب الفصل الدراسي
+  const [filterTerm, setFilterTerm] = useState<string>('');
   const router = useRouter();
 
   useEffect(() => {
@@ -33,6 +35,11 @@ export default function AdminQuizzesPage() {
     });
     load();
   }
+
+  // 🆕 الاختبارات المعروضة بعد تطبيق فلترة الفصل الدراسي
+  const visibleQuizzes = filterTerm
+    ? quizzes.filter((q) => (q.term || 'term-2') === filterTerm)
+    : quizzes;
 
   async function deleteQuiz(id: string) {
     if (!confirm('هل أنت متأكد من حذف هذا الاختبار؟ سيتم حذف كل النتائج المرتبطة به.')) return;
@@ -59,16 +66,47 @@ export default function AdminQuizzesPage() {
           </Link>
         </div>
 
+        {/* 🆕 فلترة حسب الفصل الدراسي */}
+        <div id="admin-quizzes-term-filter" className="mb-5 bg-white p-3 rounded-2xl shadow-md border-2 border-blue-100">
+          <div className="text-xs font-extrabold text-gray-500 mb-2 px-1">📅 فلترة حسب الفصل الدراسي:</div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setFilterTerm('')}
+              className={`px-4 py-2 rounded-xl font-extrabold text-sm transition-all ${
+                !filterTerm ? 'bg-gradient-to-l from-royal-700 to-royal-600 text-white shadow-lg' : 'bg-gray-50 text-gray-600 border-2 border-gray-200 hover:bg-gray-100'
+              }`}
+            >
+              📚 الكل ({quizzes.length})
+            </button>
+            {TERMS.map((t) => {
+              const count = quizzes.filter((q) => (q.term || 'term-2') === t.id).length;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setFilterTerm(t.id)}
+                  className={`px-4 py-2 rounded-xl font-extrabold text-sm transition-all ${
+                    filterTerm === t.id
+                      ? `bg-gradient-to-l ${t.gradient} text-white shadow-lg`
+                      : 'bg-gray-50 text-gray-600 border-2 border-gray-200 hover:bg-gray-100'
+                  }`}
+                >
+                  {t.emoji} {t.name} ({count})
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {loading ? (
           <div className="text-center py-12 text-gray-500">⏳ جاري التحميل...</div>
-        ) : quizzes.length === 0 ? (
+        ) : visibleQuizzes.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-3xl shadow-md">
             <div className="text-6xl mb-3">📝</div>
             <p className="text-gray-500 font-semibold">لا توجد اختبارات بعد</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {quizzes.map((q) => (
+            {visibleQuizzes.map((q) => (
               <div key={q.id} className={`bg-white rounded-3xl shadow-md overflow-hidden border-2 transition-all ${q.isActive ? 'border-emerald-200' : 'border-gray-200 opacity-70'}`}>
                 {/* صورة الغلاف */}
                 {q.coverImage && (
@@ -84,6 +122,10 @@ export default function AdminQuizzesPage() {
                       {PRIMARY_GRADES.find((g) => g.id === q.grade)?.short || q.grade} • ⏱️ {q.duration} د • ❓ {q.questionCount || 0}
                     </p>
                     <div className="flex flex-wrap gap-2 mt-2">
+                      {/* 🆕 اسم الفصل الدراسي */}
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold border ${getTerm(q.term).bg} ${getTerm(q.term).text} ${getTerm(q.term).border}`}>
+                        {getTerm(q.term).emoji} {getTerm(q.term).name}
+                      </span>
                       <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 px-2 py-0.5 rounded-lg text-xs font-bold border border-amber-200">
                         ⭐ {q.totalPoints || 0} نقطة
                       </span>

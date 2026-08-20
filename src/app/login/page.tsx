@@ -103,7 +103,7 @@ export default function LoginPage() {
           <div className="mt-7 pt-5 border-t-2 border-dashed border-royal-200 text-center">
             <span className="text-gray-600 text-sm">ليس لديك حساب؟</span>{' '}
             <Link href="/register" className="text-gold-600 font-extrabold hover:text-royal-700 transition-colors">
-              ✨ أنشئ حسابك الآن
+              ✨ إنشاء حساب
             </Link>
           </div>
         </div>

@@ -9,6 +9,7 @@ const SAMPLE = {
   title: "اختبار رياضيات الفصل الأول",
   stage: "primary",
   grade: "grade-1",
+  term: "term-1", // 🆕 الفصل الدراسي: term-1 أو term-2
   duration: 15,
   questions: [
     {
@@ -36,7 +37,10 @@ const SAMPLE = {
   ]
 };
 
-const SAMPLE_MULTI = [SAMPLE, { ...SAMPLE, title: "اختبار آخر" }];
+const SAMPLE_MULTI = [
+  SAMPLE,
+  { ...SAMPLE, title: "اختبار الترم الثاني", term: "term-2" }
+];
 
 export default function ImportJsonPage() {
   const [json, setJson] = useState('');
@@ -108,6 +112,15 @@ export default function ImportJsonPage() {
                 <li>questions - مصفوفة الأسئلة</li>
               </ul>
             </div>
+            {/* 🆕 شرح حقل الفصل الدراسي */}
+            <div className="bg-amber-50 p-3 rounded-2xl sm:col-span-2 border-2 border-amber-200">
+              <div className="font-bold text-amber-800 mb-1">📅 الفصل الدراسي (term):</div>
+              <ul className="text-gray-700 space-y-0.5 mr-4 list-disc">
+                <li><span className="font-mono font-bold" dir="ltr">"term": "term-1"</span> ← الفصل الدراسي الأول</li>
+                <li><span className="font-mono font-bold" dir="ltr">"term": "term-2"</span> ← الفصل الدراسي الثاني</li>
+                <li>لو لم يتم تحديد الترم يتم اعتباره <span className="font-bold">الترم الثاني</span> تلقائيًا (للحفاظ على التوافق)</li>
+              </ul>
+            </div>
             <div className="bg-emerald-50 p-3 rounded-2xl">
               <div className="font-bold text-emerald-800 mb-1">📌 أنواع الأسئلة:</div>
               <ul className="text-gray-700 space-y-0.5 mr-4 list-disc">
@@ -136,7 +149,7 @@ export default function ImportJsonPage() {
             onChange={(e) => setJson(e.target.value)}
             rows={20}
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-cyan-500 font-mono text-sm bg-slate-900 text-emerald-300 resize-none"
-            placeholder='{"title": "...", "stage": "primary", "grade": "grade-1", "duration": 15, "questions": [...]}'
+            placeholder='{"title": "...", "stage": "primary", "grade": "grade-1", "term": "term-1", "duration": 15, "questions": [...]}'
             dir="ltr"
             required
           />

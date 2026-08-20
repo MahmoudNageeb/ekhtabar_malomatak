@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { connectDB } from '@/lib/mongodb';
 import { Quiz } from '@/models/Quiz';
+import { normalizeTerm } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,11 @@ export async function POST(req: NextRequest) {
         title: q.title,
         stage: q.stage,
         grade: q.grade,
+        // 🆕 دعم "term": "term-1" أو "term-2" — لو غير محدد يعتبر الترم الثاني
+        term: normalizeTerm(q.term),
         duration: Number(q.duration),
+        passingScore: q.passingScore !== undefined ? Number(q.passingScore) : 50,
+        coverImage: q.coverImage || null,
         questions: q.questions.map((qq: any, i: number) => ({
           type: qq.type || 'mcq',
           questionText: qq.questionText,
@@ -32,10 +37,12 @@ export async function POST(req: NextRequest) {
           optionC: qq.optionC || null,
           optionD: qq.optionD || null,
           correctAnswer: String(qq.correctAnswer),
+          points: qq.points !== undefined ? Number(qq.points) : 1,
+          imageUrl: qq.imageUrl || null,
           order: i
         }))
       });
-      created.push({ id: String(quiz._id), title: quiz.title });
+      created.push({ id: String(quiz._id), title: quiz.title, term: quiz.term });
     }
     return NextResponse.json({ success: true, count: created.length, quizzes: created });
   } catch (e: any) {

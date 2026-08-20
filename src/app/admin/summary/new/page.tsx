@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import HomeButton from '@/components/HomeButton';
 import ImageUpload from '@/components/ImageUpload';
-import { PRIMARY_GRADES } from '@/lib/constants';
+import { PRIMARY_GRADES, TERMS, DEFAULT_TERM } from '@/lib/constants';
 
 export default function NewSummaryPage() {
   const router = useRouter();
@@ -13,6 +13,8 @@ export default function NewSummaryPage() {
   const [title, setTitle] = useState('');
   const [stage, setStage] = useState('primary');
   const [grade, setGrade] = useState('grade-1');
+  // 🆕 الفصل الدراسي
+  const [term, setTerm] = useState<string>(DEFAULT_TERM);
   const [type, setType] = useState<'image' | 'youtube' | 'file'>('image');
   const [url, setUrl] = useState('');
   const [imageUrl, setImageUrl] = useState('');
@@ -43,7 +45,7 @@ export default function NewSummaryPage() {
     const res = await fetch('/api/summaries', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, stage, grade, type, url, imageUrl, description })
+      body: JSON.stringify({ title, stage, grade, term, type, url, imageUrl, description })
     });
     setSaving(false);
     if (!res.ok) {
@@ -98,6 +100,31 @@ export default function NewSummaryPage() {
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* 🆕 اختيار الفصل الدراسي */}
+          <div id="summary-term-select">
+            <label className="block text-sm font-bold text-gray-700 mb-2">📅 الفصل الدراسي</label>
+            <div className="grid grid-cols-2 gap-3">
+              {TERMS.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTerm(t.id)}
+                  className={`p-3.5 rounded-2xl border-2 font-extrabold transition-all ${
+                    term === t.id
+                      ? `bg-gradient-to-l ${t.gradient} text-white border-white shadow-lg scale-[1.02]`
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-amber-300'
+                  }`}
+                >
+                  <div className="text-xl">{t.emoji}</div>
+                  <div className="text-sm mt-1">{t.name}</div>
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              💡 التلخيص سيظهر فقط في الفصل الدراسي المحدد
+            </p>
           </div>
 
           <div>

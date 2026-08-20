@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { connectDB } from '@/lib/mongodb';
 import { Quiz } from '@/models/Quiz';
 import { QuizResult } from '@/models/QuizResult';
+import { normalizeTerm } from '@/lib/constants';
 import mongoose from 'mongoose';
 
 export const dynamic = 'force-dynamic';
@@ -44,12 +45,32 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   const totalPoints = sortedQuestions.reduce((sum: number, q: any) => sum + (q.points ?? 1), 0);
 
+  // 🆕 حالة محاولات المستخدم الحالي في هذا الاختبار
+  let myAttempts = 0;
+  let myBestPercentage: number | null = null;
+  let myBestResultId: string | null = null;
+  let isPerfect = false;
+
+  if (user) {
+    const mine = await QuizResult.find({ userId: user.id, quizId: quiz._id })
+      .select('percentage createdAt')
+      .sort({ percentage: -1, createdAt: -1 })
+      .lean();
+    myAttempts = mine.length;
+    if (mine.length) {
+      myBestPercentage = (mine[0] as any).percentage ?? 0;
+      myBestResultId = String((mine[0] as any)._id);
+      isPerfect = (myBestPercentage ?? 0) >= 100;
+    }
+  }
+
   return NextResponse.json({
     quiz: {
       id: String(quiz._id),
       title: quiz.title,
       stage: quiz.stage,
       grade: quiz.grade,
+      term: quiz.term || 'term-2', // 🆕
       duration: quiz.duration,
       isActive: quiz.isActive,
       passingScore: quiz.passingScore ?? 50,
@@ -57,7 +78,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       totalPoints,
       createdAt: quiz.createdAt,
       updatedAt: quiz.updatedAt,
-      questions: safeQuestions
+      questions: safeQuestions,
+      // 🆕 حالة محاولات المستخدم
+      myAttempts,
+      myBestPercentage,
+      myBestResultId,
+      isPerfect
     }
   });
 }
@@ -77,12 +103,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
 
     const body = await req.json();
-    const { title, stage, grade, duration, isActive, passingScore, coverImage, questions } = body;
+    const { title, stage, grade, term, duration, isActive, passingScore, coverImage, questions } = body;
 
     // تحديث الحقول الأساسية
     if (title !== undefined) existingQuiz.title = title;
     if (stage !== undefined) existingQuiz.stage = stage;
     if (grade !== undefined) existingQuiz.grade = grade;
+    if (term !== undefined) existingQuiz.term = normalizeTerm(term); // 🆕
     if (duration !== undefined) existingQuiz.duration = Number(duration);
     if (isActive !== undefined) existingQuiz.isActive = !!isActive;
     if (passingScore !== undefined) existingQuiz.passingScore = Number(passingScore);
@@ -115,6 +142,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       quiz: {
         id: String(updated._id),
         title: updated.title,
+        term: updated.term,
         updatedAt: updated.updatedAt
       }
     });

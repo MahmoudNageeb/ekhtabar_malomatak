@@ -57,6 +57,72 @@ export const PRIMARY_GRADES = [
   }
 ];
 
+/* ============================================================
+   🆕 نظام الفصلين الدراسيين (الترم الأول / الترم الثاني)
+   ============================================================ */
+
+export const DEFAULT_TERM = 'term-2'; // للتوافق مع البيانات القديمة
+
+export type TermId = 'term-1' | 'term-2';
+
+export const TERMS: {
+  id: TermId;
+  name: string;
+  short: string;
+  emoji: string;
+  gradient: string;
+  ring: string;
+  text: string;
+  border: string;
+  bg: string;
+  description: string;
+}[] = [
+  {
+    id: 'term-1',
+    name: 'الفصل الدراسي الأول',
+    short: 'الترم الأول',
+    emoji: '🍂',
+    gradient: 'from-royal-700 via-royal-600 to-blue-500',
+    ring: 'ring-royal-400',
+    text: 'text-royal-700',
+    border: 'border-royal-300',
+    bg: 'bg-royal-50',
+    description: 'اختبارات وتلخيصات الفصل الدراسي الأول'
+  },
+  {
+    id: 'term-2',
+    name: 'الفصل الدراسي الثاني',
+    short: 'الترم الثاني',
+    emoji: '🌸',
+    gradient: 'from-emerald-600 via-teal-500 to-cyan-500',
+    ring: 'ring-emerald-400',
+    text: 'text-emerald-700',
+    border: 'border-emerald-300',
+    bg: 'bg-emerald-50',
+    description: 'اختبارات وتلخيصات الفصل الدراسي الثاني'
+  }
+];
+
+export function getTerm(id?: string | null) {
+  return TERMS.find((t) => t.id === id) || TERMS.find((t) => t.id === DEFAULT_TERM)!;
+}
+
+export function normalizeTerm(value?: string | null): TermId {
+  const v = String(value || '').trim().toLowerCase();
+  if (v === 'term-1' || v === 'term1' || v === '1' || v === 'first' || v === 'الأول' || v === 'الاول') {
+    return 'term-1';
+  }
+  if (v === 'term-2' || v === 'term2' || v === '2' || v === 'second' || v === 'الثاني') {
+    return 'term-2';
+  }
+  return DEFAULT_TERM as TermId;
+}
+
+export const TERM_NAMES: Record<string, string> = {
+  'term-1': 'الفصل الدراسي الأول',
+  'term-2': 'الفصل الدراسي الثاني'
+};
+
 export const STAGE_COLORS = {
   primary: {
     gradient: 'from-emerald-500 via-teal-500 to-cyan-500',

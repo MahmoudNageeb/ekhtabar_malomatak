@@ -22,6 +22,24 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const quiz = await Quiz.findById(params.id).lean() as any;
   if (!quiz) return NextResponse.json({ error: 'الاختبار غير موجود' }, { status: 404 });
 
+  // 🆕 لو الطالب سبق وحصل على الدرجة النهائية (100%) في هذا الاختبار — لا يُسمح بإعادته
+  const perfectAttempt = await QuizResult.findOne({
+    userId: user.id,
+    quizId: quiz._id,
+    percentage: 100
+  }).select('_id').lean();
+
+  if (perfectAttempt) {
+    return NextResponse.json(
+      {
+        error: 'لقد حصلت بالفعل على الدرجة النهائية في هذا الاختبار 🎉 لا يمكن إعادته مرة أخرى.',
+        alreadyPerfect: true,
+        resultId: String((perfectAttempt as any)._id)
+      },
+      { status: 403 }
+    );
+  }
+
   const sortedQuestions = (quiz.questions || []).sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
 
   // 🆕 حساب النقاط بناءً على نقاط كل سؤال (يتحكم بها الأدمن)

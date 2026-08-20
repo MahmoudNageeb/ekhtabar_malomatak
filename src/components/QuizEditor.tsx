@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { PRIMARY_GRADES, ARABIC_LETTERS } from '@/lib/constants';
+import { PRIMARY_GRADES, ARABIC_LETTERS, TERMS, DEFAULT_TERM } from '@/lib/constants';
 import ImageUpload from './ImageUpload';
 
 type Q = {
@@ -34,6 +34,8 @@ export default function QuizEditor({ initial, quizId }: { initial?: any; quizId?
   const [title, setTitle] = useState(initial?.title || '');
   const [stage, setStage] = useState(initial?.stage || 'primary');
   const [grade, setGrade] = useState(initial?.grade || 'grade-1');
+  // 🆕 الفصل الدراسي
+  const [term, setTerm] = useState(initial?.term || DEFAULT_TERM);
   const [duration, setDuration] = useState(initial?.duration || 15);
   const [passingScore, setPassingScore] = useState(initial?.passingScore ?? 50);
   const [coverImage, setCoverImage] = useState(initial?.coverImage || '');
@@ -136,7 +138,7 @@ export default function QuizEditor({ initial, quizId }: { initial?: any; quizId?
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        title, stage, grade,
+        title, stage, grade, term,
         duration: Number(duration),
         passingScore: Number(passingScore),
         coverImage: coverImage || null,
@@ -171,6 +173,31 @@ export default function QuizEditor({ initial, quizId }: { initial?: any; quizId?
               className="w-full px-4 py-3 border-2 border-blue-200 rounded-2xl focus:outline-none focus:border-blue-500"
               placeholder="مثال: اختبار رياضيات الفصل الأول"
             />
+          </div>
+
+          {/* 🆕 اختيار الفصل الدراسي */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-bold text-gray-700 mb-2">📅 الفصل الدراسي</label>
+            <div className="grid grid-cols-2 gap-3">
+              {TERMS.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTerm(t.id)}
+                  className={`p-3.5 rounded-2xl border-2 font-extrabold transition-all ${
+                    term === t.id
+                      ? `bg-gradient-to-l ${t.gradient} text-white border-white shadow-lg scale-[1.02]`
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-blue-300'
+                  }`}
+                >
+                  <div className="text-xl">{t.emoji}</div>
+                  <div className="text-sm mt-1">{t.name}</div>
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              💡 الاختبار سيظهر فقط في صفحات الفصل الدراسي المحدد
+            </p>
           </div>
 
           <div>
@@ -234,6 +261,12 @@ export default function QuizEditor({ initial, quizId }: { initial?: any; quizId?
               aspectRatio="wide"
             />
           </div>
+        </div>
+
+        {/* 🆕 تنبيه الفصل الدراسي المختار */}
+        <div className={`mt-4 rounded-2xl px-4 py-3 border-2 font-bold text-sm flex items-center gap-2 ${TERMS.find((t) => t.id === term)?.bg} ${TERMS.find((t) => t.id === term)?.border} ${TERMS.find((t) => t.id === term)?.text}`}>
+          <span className="text-lg">{TERMS.find((t) => t.id === term)?.emoji}</span>
+          <span>هذا الاختبار سيُنشر في: {TERMS.find((t) => t.id === term)?.name}</span>
         </div>
 
         {/* ملخص النقاط */}
